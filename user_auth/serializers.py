@@ -39,6 +39,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         return data
     
     def create(self,validated_data):
+        print('cccccccccccccccccccccccccccc')
         validated_data.pop('confirm_password')  # Remove confirm_password before creating the user
 
         user = User.objects.create_user(**validated_data)
@@ -60,6 +61,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['is_superuser'] = user.is_superuser
         token['is_tutor'] = user.is_tutor
         token['phone_number'] = user.phone_number
+        token['last_name'] = user.last_name
 
         return token
         
@@ -70,4 +72,5 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 class ProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('first_name','last_name')
+        fields = ('first_name','last_name','email','phone_number')
+            

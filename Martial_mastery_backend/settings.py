@@ -11,6 +11,11 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from dotenv import load_dotenv
+import os
+from datetime import timedelta
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,6 +31,7 @@ SECRET_KEY = 'django-insecure-yh7k5vs=&g*0_@y%ryyn*k$hp$o54$)ekhj6u@n6(=d-nclt%$
 DEBUG = True
 
 ALLOWED_HOSTS = []
+
 
 
 # Application definition
@@ -55,9 +61,19 @@ MIDDLEWARE = [
 
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173',  # Replace with the URL of your React frontend
-]
+
+
+# CSRF_TRUSTED_ORIGINS = [
+#     'http://localhost:5173'
+    
+#     ]
+
+
+CORS_ALLOW_ALL_ORIGINS = True
+
+
+
+
 
 ROOT_URLCONF = 'Martial_mastery_backend.urls'
 
@@ -78,6 +94,11 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'Martial_mastery_backend.wsgi.application'
+
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Default session backend
+SESSION_COOKIE_AGE = 300  # Session will last for 5 minutes
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 
 
@@ -118,17 +139,9 @@ AUTH_PASSWORD_VALIDATORS = [
 AUTH_USER_MODEL = 'user_auth.CustomUser'
 
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-}
-
-
-from datetime import timedelta
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),       # Adjust the time as per your requirement
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1),       # Adjust the time as per your requirement
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True,                      # Rotates refresh token on each refresh request
     'BLACKLIST_AFTER_ROTATION': True,                   # Blacklists old refresh tokens
@@ -140,6 +153,9 @@ SIMPLE_JWT = {
 REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
     # or allow read-only access for unauthenticated users.
+       'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
     ]
@@ -168,3 +184,8 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+TWILIO_AUTH_TOKEN= os.getenv("MY_TWILIO_AUTH_TOKEN")
+TWILIO_NUMBER= os.getenv("MY_TWILIO_NUMBER")
+TWILIO_ACCOUNT_SID= os.getenv("MY_ACCOUNT_SID")
