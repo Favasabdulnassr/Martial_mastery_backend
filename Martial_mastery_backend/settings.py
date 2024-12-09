@@ -25,10 +25,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-yh7k5vs=&g*0_@y%ryyn*k$hp$o54$)ekhj6u@n6(=d-nclt%$'
+SECRET_KEY = os.getenv("MY_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_USE_TLS = True
+EMAIL_PORT = os.getenv("MY_EMAIL_PORT")
+EMAIL_HOST_USER = os.getenv("MY_EMAIL")
+EMAIL_HOST_PASSWORD = os.getenv("MY_EMAIL_HOST_PASSWORD")
 
 ALLOWED_HOSTS = []
 
@@ -53,7 +60,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -62,11 +69,14 @@ MIDDLEWARE = [
 ]
 
 
+MEDIA_URL = '/images/'
+MEDIA_ROOT = BASE_DIR / "images"
 
-# CSRF_TRUSTED_ORIGINS = [
-#     'http://localhost:5173'
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:5173'
     
-#     ]
+    ]
 
 
 CORS_ALLOW_ALL_ORIGINS = True
@@ -141,8 +151,8 @@ AUTH_USER_MODEL = 'user_auth.CustomUser'
 
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1),       # Adjust the time as per your requirement
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),       # Adjust the time as per your requirement
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=3),
     'ROTATE_REFRESH_TOKENS': True,                      # Rotates refresh token on each refresh request
     'BLACKLIST_AFTER_ROTATION': True,                   # Blacklists old refresh tokens
     'AUTH_HEADER_TYPES': ('Bearer',),                   # Type of token header

@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser,BaseUserManager,PermissionsMixin
-from django.utils.translation import gettext_lazy as _
+
 
 
 class CustomUserManager(BaseUserManager):
@@ -21,13 +21,23 @@ class CustomUserManager(BaseUserManager):
     
 
 class CustomUser(AbstractBaseUser,PermissionsMixin):
+
+    ROLE_CHOICES = (
+        ('student','Student'),
+        ('tutor','Tutor'),
+        ('admin','Admin')
+    )
+    DEFAULT_ROLE = 'student'
+
     email = models.EmailField(unique=True)
     phone_number = models.CharField(max_length=15,unique=True)
     first_name = models.CharField(max_length=30,blank=True)
     last_name = models.CharField(max_length=30,blank=True)
-    is_active = models.BooleanField(default=True)
+    status = models.BooleanField(default=True)
+    role = models.CharField(max_length=20,choices=ROLE_CHOICES,default=DEFAULT_ROLE)
     is_staff = models.BooleanField(default=False)
-    is_tutor = models.BooleanField(default=False)
+    profile = models.ImageField(upload_to='userProfiles',null=True,blank=True)
+
 
     objects = CustomUserManager()
 

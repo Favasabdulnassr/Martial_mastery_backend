@@ -25,11 +25,16 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)  # Add confirm_password field
-
+    
+    role = serializers.ChoiceField(
+        choices=User.ROLE_CHOICES,
+        default=User.DEFAULT_ROLE,  # This sets the default to 'student'
+        required=False  # Make this field optional
+    )
 
     class Meta:
         model = User
-        fields = ('first_name','email','phone_number','password', 'confirm_password')
+        fields = ('first_name','email','phone_number','password', 'confirm_password','role')
 
 
     def validate(self,data):
@@ -39,7 +44,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         return data
     
     def create(self,validated_data):
-        print('cccccccccccccccccccccccccccc')
         validated_data.pop('confirm_password')  # Remove confirm_password before creating the user
 
         user = User.objects.create_user(**validated_data)
@@ -58,10 +62,17 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         token['first_name'] = user.first_name
         token['email'] = user.email
-        token['is_superuser'] = user.is_superuser
-        token['is_tutor'] = user.is_tutor
+        token['role'] = user.role
         token['phone_number'] = user.phone_number
         token['last_name'] = user.last_name
+        token['profile'] = user.profile
+
+         # If user has a profile image, get the URL of the image.
+        if user.profile:
+            # Assuming `profile` is an ImageField in the `User` model
+            token['profile'] = user.profile.url if user.profile else None
+        else:
+            token['profile'] = None
 
         return token
         
@@ -72,5 +83,5 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 class ProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('first_name','last_name','email','phone_number')
+        fields = ('first_name','last_name','email','phone_number','profile')       
             

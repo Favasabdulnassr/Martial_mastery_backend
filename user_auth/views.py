@@ -14,6 +14,12 @@ from django.conf import settings
 import phonenumbers
 from datetime import datetime, timedelta
 from django.contrib.sessions.models import Session
+from rest_framework.parsers import MultiPartParser, FormParser
+from django.core.mail import send_mail
+from django.db.models import Q
+from rest_framework.pagination import PageNumberPagination
+
+
 
 
 # from rest_framework_simplejwt.tokens import RefreshToken,AccessToken
@@ -31,6 +37,9 @@ class RegisterView(APIView):
     def post(self,request):
         serializer = RegisterSerializer(data = request.data)
         if serializer.is_valid():
+            role = serializer.validated_data['role']
+            recipient_mail = serializer.validated_data['email']
+
             request.session['registration_data'] = serializer.validated_data
 
 
@@ -44,39 +53,59 @@ class RegisterView(APIView):
             request.session.save()
 
 
-            phone_number = serializer.validated_data['phone_number']
-            try:
-                # Parse phone number with default region
+            
+            if role == 'student':
+                phone_number = serializer.validated_data['phone_number']
+                try:
+                    # Parse phone number with default region
 
-                parsed_number = phonenumbers.parse(phone_number, "IN")    # Replace "IN" with your default country code (e.g., "US" for the USA)
+                    parsed_number = phonenumbers.parse(phone_number, "IN")    # Replace "IN" with your default country code (e.g., "US" for the USA)
 
-                # Check if the number is valid
-                if not phonenumbers.is_valid_number(parsed_number):
-                    return Response({'message': 'Invalid phone number'}, status=status.HTTP_400_BAD_REQUEST)
+                    # Check if the number is valid
+                    if not phonenumbers.is_valid_number(parsed_number):
+                        return Response({'message': 'Invalid phone number'}, status=status.HTTP_400_BAD_REQUEST)
 
-                # Format the number to E.164 format
-                formatted_number = phonenumbers.format_number(parsed_number, phonenumbers.PhoneNumberFormat.E164)
+                    # Format the number to E.164 format
+                    formatted_number = phonenumbers.format_number(parsed_number, phonenumbers.PhoneNumberFormat.E164)
 
-                # Send OTP via Twilio
-                client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-                client.messages.create(
-                    to=formatted_number,  # Use formatted number
-                    from_=settings.TWILIO_NUMBER,
-                    body=f"Your OTP is {otp}"
-                )
+                    # Send OTP via Twilio
+                    client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+                    client.messages.create(
+                        to=formatted_number,  # Use formatted number
+                        from_=settings.TWILIO_NUMBER,
+                        body=f"Your OTP is {otp}"
+                    )
+
+                    return Response(
+                        {'message': 'OTP sent successfully. Verify to complete registration',
+                        'otp_expiration': expiration_time.isoformat(),
+                        'session_id': request.session.session_key,  # Send the session ID (cookie)
+
+                        
+                        },
+                        status=status.HTTP_201_CREATED
+                    )
+
+                except phonenumbers.phonenumberutil.NumberParseException:
+                    return Response({'message': 'Invalid phone number format'}, status=status.HTTP_400_BAD_REQUEST)
+
+            elif role == 'tutor':
+                subject = 'your 6 digit OTP for email verification'
+                message = f"Your email verification is {otp}"
+                from_email = settings.EMAIL_HOST_USER
+                recipient_list = [recipient_mail]
+                send_mail(subject,message,from_email,recipient_list,fail_silently=False)
 
                 return Response(
-                    {'message': 'OTP sent successfully. Verify to complete registration',
-                     'otp_expiration': expiration_time.isoformat(),
-                     'session_id': request.session.session_key,  # Send the session ID (cookie)
+                        {'message': 'OTP sent successfully. Verify to complete registration',
+                        'otp_expiration': expiration_time.isoformat(),
+                        'session_id': request.session.session_key,  # Send the session ID (cookie)
 
-                     
-                     },
-                    status=status.HTTP_201_CREATED
-                )
+                        
+                        },
+                        status=status.HTTP_201_CREATED
+                    )
 
-            except phonenumbers.phonenumberutil.NumberParseException:
-                return Response({'message': 'Invalid phone number format'}, status=status.HTTP_400_BAD_REQUEST)
             
         print("Serializer errors",serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -137,6 +166,7 @@ class VerifyOtpView(APIView):
 
 
 
+
 class MyTokenObtainPairView(TokenObtainPairView):
     # Custom view to use the custom token serializer
     
@@ -156,3 +186,114 @@ class ProfileUpdateView(APIView):
         
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
     
+class ProfilePictureView(APIView):
+    parser_classes = (MultiPartParser, FormParser)
+    permission_classes=[IsAuthenticated]
+
+    def get(self,request):
+        user = request.user
+        if not user.profile:
+            return Response({"detail":"No profile picture found"},status=status.HTTP_404_NOT_FOUND)
+
+    def post(self,request):
+        user = request.user
+        print(user)
+        print(request)
+        profile_Picture =  request.FILES.get('profile')
+        print(profile_Picture)
+
+        if not profile_Picture:
+            return Response({"detail":"No file provided"},status=status.HTTP_400_BAD_REQUEST)      
+        
+        user.profile = profile_Picture
+        user.save()
+        serializer = ProfileUpdateSerializer(user)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+    
+    def delete(self,request):
+        user =  request.user
+        user.profile.delete()
+        user.profile = None
+        user.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+
+class UserListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+
+    class StandardResultsSetPagination(PageNumberPagination):
+        page_size = 5
+    
+    def get(self,request):
+        search_query = request.query_params.get('search','')
+        if search_query:
+            users = User.objects.filter(
+                Q(first_name__icontains = search_query)|
+                Q(email__icontains=search_query),
+                role='student'
+            ).order_by('id')
+        else:
+            users = User.objects.filter(role='student').order_by('id')
+
+        paginator = self.StandardResultsSetPagination()
+
+        result_page = paginator.paginate_queryset(users,request)
+        serializer = ProfileUpdateSerializer(result_page,many=True)
+        return paginator.get_paginated_response(serializer.data)
+    
+
+class TutorListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    class StandardResultSetPagination(PageNumberPagination):
+        page_size = 5
+
+        
+
+    def get(self,request):
+        search_query = request.query_params.get('search','')
+        
+        if search_query:
+            users = User.objects.filter(
+                Q(first_name__icontains= search_query)|
+                Q(email__icontains=search_query),
+                role = 'tutor'
+            ).order_by('id')
+        else:
+            users = User.objects.filter(role='tutor').order_by('id')
+
+
+        paginator = self.StandardResultSetPagination()
+        result_page = paginator.paginate_queryset(users,request)
+
+        serializer = ProfileUpdateSerializer(result_page,many=True)
+        return paginator.get_paginated_response(serializer.data)
+               
+    
+
+
+    
+class TutorRegister(APIView):
+    permission_classes = [AllowAny]
+
+    
+
+    def post(self,request):
+        print('ddddddddddddatat',request.data)
+        serializer = RegisterSerializer(data=request.data)
+        print('suuuuuuuuuuuuuuuuuuuui',serializer)
+        print('vvvvvvvv')
+        if serializer.is_valid():
+            print('ccccccccccccc')
+            serializer.save()
+
+            return Response(
+                {'message':'tutor created successfully'},
+                status=status.HTTP_201_CREATED
+            )
+        
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+    
+
