@@ -54,6 +54,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'user_auth',
     'corsheaders',
+    'Courses',
+    'Tutorials',
 ]
 
 MIDDLEWARE = [
@@ -69,8 +71,8 @@ MIDDLEWARE = [
 ]
 
 
-MEDIA_URL = '/images/'
-MEDIA_ROOT = BASE_DIR / "images"
+MEDIA_URL = '/medias/'
+MEDIA_ROOT = BASE_DIR / "medias"
 
 
 CSRF_TRUSTED_ORIGINS = [
