@@ -50,12 +50,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'cloudinary_storage',
+    'cloudinary',
     'rest_framework',
     'rest_framework.authtoken',
     'user_auth',
     'corsheaders',
     'Courses',
     'Tutorials',
+    'TutorialPayment',
+
 ]
 
 MIDDLEWARE = [
@@ -68,11 +72,21 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
 
+
 ]
 
 
 MEDIA_URL = '/medias/'
-MEDIA_ROOT = BASE_DIR / "medias"
+MEDIA_ROOT = BASE_DIR / 'media'  # The actual location on the filesystem where media files are stored
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.VideoMediaCloudinaryStorage'
+
+
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv('CLOUD_NAME'),
+    'API_KEY': os.getenv('API_KEY'),
+    'API_SECRET': os.getenv('API_SECRET')
+}
 
 
 CSRF_TRUSTED_ORIGINS = [
@@ -169,7 +183,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+        'rest_framework.permissions.AllowAny'
     ]
 }
 
@@ -201,3 +215,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 TWILIO_AUTH_TOKEN= os.getenv("MY_TWILIO_AUTH_TOKEN")
 TWILIO_NUMBER= os.getenv("MY_TWILIO_NUMBER")
 TWILIO_ACCOUNT_SID= os.getenv("MY_ACCOUNT_SID")
+
+
+
+
+
+STRIPE_PUBLIC_KEY = os.getenv("STRIPE_PUBLIC_KEY")
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+# STRIPE_WEBHOOK_SECRET = 'your_stripe_webhook_secret'
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+
+
+
+SITE_URL = 'http://localhost:5173'

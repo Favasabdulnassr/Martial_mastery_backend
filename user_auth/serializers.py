@@ -15,13 +15,11 @@ class RegisterSerializer(serializers.ModelSerializer):
         required=True,
         validators = [UniqueValidator(queryset=User.objects.all())]
     )
-    print(email)
 
     phone_number = serializers.CharField(
         required = True,
         validators = [UniqueValidator(queryset=User.objects.all())]
     )
-    print(phone_number)
 
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)  # Add confirm_password field
@@ -38,7 +36,6 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
     def validate(self,data):
-        print(data,'data')
         if data['password'] != data['confirm_password']:
             raise serializers.ValidationError('Password do not match')
         return data

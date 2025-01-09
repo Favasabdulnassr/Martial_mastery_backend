@@ -26,6 +26,7 @@ urlpatterns = [
     path('auth/',include('user_auth.urls')),
     path('',include('Courses.urls')),
     path('tutorials/',include('Tutorials.urls')),
+    path('payments/',include('TutorialPayment.urls')),
 
 ]
 

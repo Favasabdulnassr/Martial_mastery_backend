@@ -30,12 +30,14 @@ class CustomUser(AbstractBaseUser,PermissionsMixin):
     DEFAULT_ROLE = 'student'
 
     email = models.EmailField(unique=True)
-    phone_number = models.CharField(max_length=15,unique=True)
+    phone_number = models.CharField(max_length=15,unique=True,blank=True,null=True,default=None)
     first_name = models.CharField(max_length=30,blank=True)
     last_name = models.CharField(max_length=30,blank=True)
     status = models.BooleanField(default=True)
     role = models.CharField(max_length=20,choices=ROLE_CHOICES,default=DEFAULT_ROLE)
     is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)  # Add this line if missing
+
     profile = models.ImageField(upload_to='userProfiles',null=True,blank=True)
 
 
@@ -46,3 +48,22 @@ class CustomUser(AbstractBaseUser,PermissionsMixin):
 
     def __str__(self):
         return self.email
+    
+
+
+
+
+class PasswordResetToken(models.Model):
+    user = models.ForeignKey(CustomUser,on_delete=models.CASCADE)
+    token = models.CharField(max_length=300,unique=True)
+    is_valid = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+
+        indexes = [
+            models.Index(fields=['token']),
+            models.Index(fields=['user','is_valid']),
+        ]
+
