@@ -30,9 +30,13 @@ class RegisterSerializer(serializers.ModelSerializer):
         required=False  # Make this field optional
     )
 
+    experience = serializers.CharField(required=False, allow_blank=True)  # New field
+    bio = serializers.CharField(required=False, allow_blank=True)  # New field
+
+
     class Meta:
         model = User
-        fields = ('first_name','email','phone_number','password', 'confirm_password','role')
+        fields = ('first_name','email','phone_number','password', 'confirm_password','role','experience','bio')
 
 
     def validate(self,data):
@@ -63,6 +67,8 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['phone_number'] = user.phone_number
         token['last_name'] = user.last_name
         token['profile'] = user.profile
+        token['experience'] = user.experience
+        token['bio'] = user.bio
 
          # If user has a profile image, get the URL of the image.
         if user.profile:
@@ -80,5 +86,13 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 class ProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('first_name','last_name','email','phone_number','profile')       
+        fields = ('first_name','last_name','email','phone_number','profile','experience','bio')       
+
+
+
+from .models import CustomUser
+class CustomUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = fields = ['id', 'email', 'first_name', 'last_name', 'phone_number']
             

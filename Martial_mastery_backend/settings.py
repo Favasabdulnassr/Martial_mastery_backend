@@ -57,8 +57,8 @@ INSTALLED_APPS = [
     'user_auth',
     'corsheaders',
     'Courses',
-    'Tutorials',
-    'TutorialPayment',
+    'payment',
+
 
 ]
 
@@ -222,6 +222,7 @@ TWILIO_ACCOUNT_SID= os.getenv("MY_ACCOUNT_SID")
 
 STRIPE_PUBLIC_KEY = os.getenv("STRIPE_PUBLIC_KEY")
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_ENDPOINT_SECRET = os.getenv("STRIPE_ENDPOINT_SECRET")
 # STRIPE_WEBHOOK_SECRET = 'your_stripe_webhook_secret'
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")

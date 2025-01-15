@@ -521,3 +521,62 @@ class ResetPasswordView(APIView):
                           status=status.HTTP_400_BAD_REQUEST)
         
 
+
+
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.pagination import PageNumberPagination
+from django.db.models import Count
+from django.db.models import Q
+from .serializers import CustomUserSerializer
+class StudentsPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def tutor_students(request):
+   
+    if request.user.role != 'tutor':
+        return Response({'error': 'Only tutors can access this endpoint'}, status=400)
+
+    # Get search parameter
+    search_query = request.GET.get('search', '')
+    
+    # Get students who purchased the tutor's courses
+    students = CustomUser.objects.filter(
+        role='student',
+        purchasedcourse__tutor=request.user
+    ).distinct().annotate(
+        purchased_tutorials=Count('purchasedcourse', filter=Q(purchasedcourse__tutor=request.user,purchasedcourse__is_active=True ))
+    )
+    print('vallathum nadakko',students)
+    
+    # Apply search if provided
+    if search_query:
+        students = students.filter(
+            Q(first_name__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(phone_number__icontains=search_query)
+        )
+
+    # Setup pagination
+    paginator = StudentsPagination()
+    paginated_students = paginator.paginate_queryset(students, request)
+    
+    # Serialize the data
+    serializer = CustomUserSerializer(paginated_students, many=True)
+    
+    # Add purchased_tutorials count to each student
+    student_data = serializer.data
+    for student in student_data:
+        student_obj = students.get(id=student['id'])
+        student['purchased_tutorials'] = student_obj.purchased_tutorials
+
+    return paginator.get_paginated_response({
+        'students': student_data,
+        'total_count': students.count(),
+        'has_next': paginator.page.has_next(),
+        'has_previous': paginator.page.has_previous()
+    })

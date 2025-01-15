@@ -2,7 +2,7 @@ from django.urls import path
 from .views import RegisterView,ProfileUpdateView
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import MyTokenObtainPairView,VerifyOtpView,ProfilePictureView
-from .views import UserListView,TutorRegister,TutorListView,ChangePassword,GoogleSignInView,ForgotPasswordView,ResetPasswordView
+from .views import UserListView,TutorRegister,TutorListView,ChangePassword,GoogleSignInView,ForgotPasswordView,ResetPasswordView,tutor_students
 
 urlpatterns = [
     path('register/',RegisterView.as_view(),name='register'),
@@ -20,6 +20,8 @@ urlpatterns = [
     path('google/login/', GoogleSignInView.as_view(), name='google-login'),
     path('forgot-password/',ForgotPasswordView.as_view(), name='forgot-password'),
     path('reset-password/<str:token>/',ResetPasswordView.as_view(), name='reset-password'),
+    path('tutor/students/',tutor_students, name='tutor-students'),
+
 
 ]
 

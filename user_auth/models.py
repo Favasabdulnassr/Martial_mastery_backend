@@ -40,6 +40,9 @@ class CustomUser(AbstractBaseUser,PermissionsMixin):
 
     profile = models.ImageField(upload_to='userProfiles',null=True,blank=True)
 
+    experience = models.TextField(blank=True, null=True)
+    bio = models.TextField(blank=True, null=True)
+
 
     objects = CustomUserManager()
 
