@@ -9,6 +9,13 @@ from Courses.models import Course
 stripe.api_key = settings.STRIPE_SECRET_KEY  # Add your Stripe secret key to settings.py
 
 class Payment(models.Model):
+    PAYMENT_STATUS = (
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('successful', 'Successful'),
+        ('failed', 'Failed'),
+    )
+
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     stripe_payment_intent_id = models.CharField(max_length=255, null=True, blank=True)  # Made nullable
@@ -16,67 +23,93 @@ class Payment(models.Model):
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2)
     payment_status = models.CharField(max_length=50, default='pending')  # pending, successful, failed
     payment_date = models.DateTimeField(auto_now_add=True)
+    last_error = models.TextField(null=True, blank=True)
 
-    def __str__(self):
-        return f"{self.user.email} paid for {self.course.title}"
 
-    def mark_payment_successful(self):
-        self.payment_status = 'successful'
+
+    class Meta:
+        ordering = ['-payment_date']
+        indexes = [
+            models.Index(fields=['payment_status']),
+            models.Index(fields=['stripe_session_id']),
+            models.Index(fields=['stripe_payment_intent_id']),
+        ]
+
+        
+
+    def update_status(self, status, error=None):
+        """Update payment status and handle associated actions"""
+        self.payment_status = status
+        if error:
+            self.last_error = error
         self.save()
 
-    def mark_payment_failed(self):
-        self.payment_status = 'failed'
-        self.save()
+        if status == 'successful':
+            self._create_purchased_course()
 
-    def get_payment_url(self):
-        """Get a Stripe payment link."""
+    
+    def _create_purchased_course(self):
+        """Create PurchasedCourse after successful payment"""
         try:
-            # Add proper error handling and logging
-            if not self.course:
-                raise ValueError("No course associated with this payment")
-            
-            if not self.amount_paid:
-                raise ValueError("No amount specified for payment")
-            
-            # Create Stripe checkout session with better error handling
+            purchased_course = PurchasedCourse.objects.create(
+                user=self.user,
+                course=self.course,
+                tutor=self.course.tutor,
+                course_title=self.course.title,
+                course_description=self.course.description,
+                course_fees=self.amount_paid,
+                is_active=True
+            )
+            purchased_course.create_purchased_lessons()
+            return purchased_course
+        except Exception as e:
+            self.update_status('failed', str(e))
+            raise
+   
+
+
+
+    
+    def create_stripe_session(self):
+        """Create Stripe checkout session"""
+        try:
             checkout_session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
                 line_items=[{
                     'price_data': {
                         'currency': 'usd',
                         'product_data': {
-                            'name': f"{self.course.title} by {self.course.tutor.first_name} {self.course.tutor.last_name}",
-                            'description': self.course.description[:255],  # Stripe has a limit on description length
+                            'name': self.course.title,
+                            'description': self.course.description[:255],
+                            'metadata': {
+                                'course_id': str(self.course.id)
+                            }
                         },
-                        'unit_amount': int(float(self.amount_paid) * 100),  # Ensure proper conversion to cents
+                        'unit_amount': int(float(self.amount_paid) * 100),
                     },
                     'quantity': 1,
                 }],
                 mode='payment',
-                success_url=f"{settings.SITE_URL}/courses?success=true",
-                cancel_url=f"{settings.SITE_URL}/courses?cancelled=false",
+                success_url=f"{settings.SITE_URL}/payment?success=true",
+                cancel_url=f"{settings.SITE_URL}/payment?cancelled=false",
                 metadata={
                     'payment_id': str(self.id),
                     'course_id': str(self.course.id),
                     'user_id': str(self.user.id)
                 },
-                customer_email=self.user.email  # Pre-fill customer email
+                customer_email=self.user.email
             )
             
-            # Store the session ID
             self.stripe_session_id = checkout_session.id
-            self.save()
-            
+            self.update_status('processing')
             return checkout_session.url
             
         except stripe.error.StripeError as e:
-            # Handle Stripe-specific errors
-            print(f"Stripe error: {str(e)}")
-            return f"Stripe error: {str(e)}"
+            self.update_status('failed', str(e))
+            raise
         except Exception as e:
-            # Handle other errors
-            print(f"Error creating payment URL: {str(e)}")
-            return f"Error: {str(e)}"
+            self.update_status('failed', str(e))
+            raise
 
 
 
@@ -126,3 +159,6 @@ class PurchasedCourseLesson(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.purchased_course.course_title}"
+
+
+

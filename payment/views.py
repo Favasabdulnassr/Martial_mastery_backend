@@ -1,100 +1,146 @@
 import stripe
-from rest_framework import status
+from rest_framework import status,viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
 from django.conf import settings
 from django.shortcuts import get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from .models import Payment
 from Courses.models import Course
 from .models import PurchasedCourse
 from rest_framework.permissions import IsAuthenticated
-stripe.api_key = settings.STRIPE_SECRET_KEY  # Add your Stripe secret key to settings.py
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+from .serializers import PaymentSerializer
+from rest_framework.decorators import action
 
-class InitiatePaymentAPIView(APIView):
-    def post(self, request, course_id):
+
+# stripe listen --forward-to http://127.0.0.1:8000/payment/webhook/ --log-level debug
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
+import logging
+
+logger = logging.getLogger(__name__)
+
+class PaymentViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = PaymentSerializer
+
+    def get_queryset(self):
+        return Payment.objects.filter(user=self.request.user)
+
+    @action(detail=False, methods=['post'])
+    def initiate(self, request,pk=None):
         try:
-            # Get the course with proper error handling
-            try:
-                course = Course.objects.get(id=course_id)
-            except Course.DoesNotExist:
-                return Response(
-                    {"message": "Course not found"},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            
-            # Check if the course has a tutor assigned
-            if not course.tutor:
-                return Response(
-                    {"message": "Course does not have a tutor assigned"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            course = Course.objects.get(id=pk)
 
-            # Check if user has already purchased the course
-            if not course.fees or float(course.fees) <= 0:
-                return Response(
-                    {"message": "Invalid course fees"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
+            # Validation checks
             if PurchasedCourse.objects.filter(user=request.user, course=course).exists():
                 return Response(
-                    {"message": "You have already purchased this course"},
+                    {"error": "Course already purchased"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Create a Payment record
-            try:
-                payment = Payment.objects.create(
-                    user=request.user,
-                    course=course,
-                    amount_paid=course.fees,
-                    payment_status='pending'
-                )
-            except Exception as e:
-                return Response(
-                    {"message": f"Error creating payment: {str(e)}"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
+            # Create payment record
+            payment = Payment.objects.create(
+                user=request.user,
+                course=course,
+                amount_paid=course.fees
+            )
 
-            # Get the payment URL (Stripe Checkout)
-            checkout_url = payment.get_payment_url()
+            # Get checkout URL
+            checkout_url = payment.create_stripe_session()
 
-            if isinstance(checkout_url, str) and checkout_url.startswith('http'):
-                # Before redirecting, create a PurchasedCourse entry and associated lessons.
-                purchased_course = PurchasedCourse.objects.create(
-                    user=request.user,
-                    course=course,
-                    tutor=course.tutor,  # Set the tutor field to the course's tutor
-                    course_title=course.title,
-                    course_description=course.description,
-                    course_fees=course.fees,
-                    is_active=True
-                )
+            return Response({
+                "checkout_url": checkout_url,
+                "payment_id": payment.id
+            })
 
-                purchased_course.create_purchased_lessons()
-
-                # Mark the payment as successful after creation.
-                payment.mark_payment_successful()
-
-                return Response({
-                    "checkout_url": checkout_url,
-                    "payment_id": payment.id,
-                    "purchased_course_id": purchased_course.id
-                })
-            else:
-                payment.delete()  # Delete the payment record if there was an error
-                return Response(
-                    {"message": f"Unable to create payment session: {checkout_url}"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-
-        except Exception as e:
+        except Course.DoesNotExist:
             return Response(
-                {"message": str(e)},
+                {"error": "Course not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except stripe.error.StripeError as e:
+            logger.error(f"Stripe error: {str(e)}")
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"Payment error: {str(e)}")
+            return Response(
+                {"error": "Failed to process payment"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+# @csrf_exempt
+# @require_POST
+def stripe_webhook(request):
+    print("=============== WEBHOOK RECEIVED ===============")
+    print(f"Request Method: {request.method}")
+    print(f"Headers: {request.headers}")
+    
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+    print(f"Signature Header: {sig_header}")
+
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_ENDPOINT_SECRET
+        )
+    except Exception as e:
+        return HttpResponse(status=400)
+
+    if event['type'] == 'checkout.session.completed':
+        try:
+            session = event['data']['object']
+            payment_id = session['metadata']['payment_id']
+            print(f"Processing checkout session: {session.id}")
+            
+            # Get the payment   
+            payment = Payment.objects.get(id=payment_id)
+            
+            # Update payment status
+            payment.stripe_payment_intent_id = session['payment_intent']
+            payment.payment_status = 'successful'
+            payment.save()
+
+            # Create PurchasedCourse
+            purchased_course = PurchasedCourse.objects.create(
+                user=payment.user,
+                course=payment.course,
+                tutor=payment.course.tutor,
+                course_title=payment.course.title,
+                course_description=payment.course.description,
+                course_fees=payment.amount_paid,
+                is_active=True
+            )
+
+            # Create purchased lessons
+            purchased_course.create_purchased_lessons()
+
+            print(f"Successfully processed payment and created course purchase for payment_id: {payment_id}")
+            
+        except Payment.DoesNotExist:
+            print(f"Payment not found for session {session['id']}")
+            return HttpResponse(status=400)
+        except Exception as e:
+            print(f"Error processing webhook: {str(e)}")
+            return HttpResponse(status=400)
+
+    elif event['type'] == 'payment_intent.payment_failed':
+        try:
+            payment_intent = event['data']['object']
+            payment = Payment.objects.get(stripe_payment_intent_id=payment_intent['id'])
+            payment.payment_status = 'failed'
+            payment.last_error = payment_intent.get('last_payment_error', {}).get('message')
+            payment.save()
+        except Payment.DoesNotExist:
+            print(f"Payment not found for payment_intent {payment_intent['id']}")
+
+    return HttpResponse(status=200)
 
 
 
