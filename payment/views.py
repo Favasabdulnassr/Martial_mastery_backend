@@ -157,9 +157,11 @@ class PurchasedCoursesView(APIView):
         
         return Response(serializer.data)
     
+
 from rest_framework import generics
 from .serializers import PurchasedCourseLessonSerializer
 from .models import PurchasedCourseLesson
+from rest_framework.exceptions import PermissionDenied
 
 class PurchasedCourseLessonListView(generics.ListAPIView):
     serializer_class = PurchasedCourseLessonSerializer
@@ -169,3 +171,27 @@ class PurchasedCourseLessonListView(generics.ListAPIView):
         course_id = self.kwargs['course_id']
         purchased_lessons = PurchasedCourseLesson.objects.filter(purchased_course_id=course_id)
         return purchased_lessons
+
+
+
+class PurchasedCourseLessonDetailView(generics.RetrieveAPIView):
+    serializer_class = PurchasedCourseLessonSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        course_id = self.kwargs['course_id']
+        lesson_id = self.kwargs['lesson_id']
+
+
+        lesson = get_object_or_404(
+            PurchasedCourseLesson,
+            id = lesson_id,
+            purchased_course_id = course_id,
+            purchased_course__user = self.request.user   
+        ) 
+
+        if not lesson.purchased_course.is_active:
+            raise PermissionDenied("This course is no longer active")
+        
+
+        return lesson
