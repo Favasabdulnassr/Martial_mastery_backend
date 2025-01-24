@@ -8,11 +8,15 @@ class RecursiveSerializer(serializers.Serializer):
         return serializer.data
 
 
+from django.utils.timesince import timesince
+from django.utils.timezone import now
+
 class LessonCommentSerializer(serializers.ModelSerializer):
     replies = RecursiveSerializer(many=True,read_only=True)
-    user_email = serializers.SerializerMethodField()
-    likes_count =  serializers.SerializerMethodField()
-    is_liked_by_user = serializers.SerializerMethodField()
+    user = serializers.SerializerMethodField()
+    time_ago = serializers.SerializerMethodField()  
+
+
 
     class Meta:
         model = LessonComment
@@ -20,26 +24,24 @@ class LessonCommentSerializer(serializers.ModelSerializer):
             'id',
             'lesson',
             'user',
-            'user_email',
             'content',
             'created_at',
             'updated_at',
-            'likes_count',
-            'is_liked_by_user',
             'replies',
+            'time_ago'
         ]
         read_only_fields = ['user','created_at','updated_at']
 
-    def get_user_email(self,obj):
-        return obj.user.email
+    def get_user(self,obj):
+        user = obj.user
+        return {
+            "id": user.id,
+            "name": user.first_name ,
+            "profile":user.profile.url,
+        }
     
-    def get_likes_count(self,obj):
-        return obj.likes.count()
-    
-    def get_is_liked_by_user(self,obj):
-        request = self.context.get('request')
-        if request and hasattr(request,'user') and request.user.is_authenticated:
-            return obj.likes.filter(id = request.user.id).exists()
-        
-        return False
+    def get_time_ago(self, obj):
+        # Calculate relative time using timesince
+        return f"{timesince(obj.created_at, now())} ago"
+
 

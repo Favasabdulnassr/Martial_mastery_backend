@@ -58,23 +58,6 @@ def get_lesson_comments(request,lesson_id):
 
 
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def toggle_like_comment(request,comment_id):
-    comment = get_object_or_404(LessonComment,id=comment_id)
-
-    if not comment.lesson.purchased_course.user == request.user and not comment.lesson.purchased_course.tutor == request.user:
-        return Response({"error": "You must purchase this course to like comments"}, 
-                       status=status.HTTP_403_FORBIDDEN)
-    
-    if comment.likes.filter(id=request.user.id).exists():
-        comment.likes.remove(request.user)
-        liked = False
-
-    else:
-        comment.likes.add(request.user)
-        liked = True    
-
 
 @api_view(['PUT','DELETE'])
 @permission_classes([IsAuthenticated])

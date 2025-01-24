@@ -10,7 +10,6 @@ class LessonComment(models.Model):
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    likes = models.ManyToManyField(CustomUser,related_name='liked_comments',blank=True)
     parent = models.ForeignKey('self',null=True,blank=True,on_delete=models.CASCADE,related_name='replies')
 
 
@@ -18,7 +17,7 @@ class LessonComment(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"comment by {self.user.email} on {self.lesson.title}"
+        return f"comment by {self.user.email} on {self.lesson.title}  "
 
     @property
     def is_reply(self):
@@ -27,8 +26,6 @@ class LessonComment(models.Model):
     def get_replies(self):
         return self.replies.all()
     
-    def like_count(self):
-        return self.likes.count()
 
 
 

@@ -60,7 +60,7 @@ class CourseLesson(models.Model):
         return str(self.cloudinary_url)    
         
     def __str__(self):
-            return f"{self.title} - {self.course.title}"    
+            return f"{self.title} - {self.course.title} "    
     
 
 

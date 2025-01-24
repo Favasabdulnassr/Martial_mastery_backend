@@ -158,7 +158,7 @@ class PurchasedCourseLesson(models.Model):
         ordering = ['order']
 
     def __str__(self):
-        return f"{self.title} - {self.purchased_course.course_title}"
+        return f"{self.title} - {self.purchased_course.course_title} {self.id}"
 
 
 
