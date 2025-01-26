@@ -35,9 +35,10 @@ class LessonCommentSerializer(serializers.ModelSerializer):
     def get_user(self,obj):
         user = obj.user
         return {
-            "id": user.id,
+            "email": user.email,
             "name": user.first_name ,
-            "profile":user.profile.url,
+            "role":user.role,
+            "profile":user.profile.url if user.profile else None,
         }
     
     def get_time_ago(self, obj):

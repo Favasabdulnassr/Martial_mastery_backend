@@ -34,14 +34,25 @@ from .models import PurchasedCourse
 from user_auth.serializers import CustomUserSerializer  # Import CustomUser serializer
 
 class PurchasedCourseSerializer(serializers.ModelSerializer):
-    tutor = CustomUserSerializer(read_only=True)  # Nested serializer for tutor
+    tutor = CustomUserSerializer(read_only=True)
     course_title = serializers.CharField(source='course.title')
     course_description = serializers.CharField(source='course.description')
     course_fees = serializers.DecimalField(source='course.fees', max_digits=10, decimal_places=2)
+    purchased_date = serializers.SerializerMethodField()
+    
 
     class Meta:
         model = PurchasedCourse
-        fields = ['id', 'user', 'tutor', 'course', 'course_title', 'course_description', 'course_fees', 'purchase_date', 'is_active']
+        fields = [
+            'id', 'tutor', 'course', 'course_title', 
+            'course_description', 'course_fees', 
+            'purchased_date', 'is_active'
+        ]
+
+    def get_purchased_date(self, obj):
+        # Get the earliest purchase date for this course
+        first_purchase = obj.purchased_users.order_by('purchased_at').first()
+        return first_purchase.purchased_at if first_purchase else None
 
 
 
@@ -57,3 +68,4 @@ class PurchasedCourseLessonSerializer(serializers.ModelSerializer):
     class Meta:
         model = PurchasedCourseLesson
         fields = ['id', 'title', 'description', 'cloudinary_url', 'thumbnail', 'order', 'created_at', 'updated_at']
+

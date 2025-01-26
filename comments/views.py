@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from payment.models import PurchasedCourseLesson
 from .models import LessonComment
 from .serializers import LessonCommentSerializer
+from payment.models import PurchasedCourseUser
 
 
 
@@ -13,10 +14,16 @@ from .serializers import LessonCommentSerializer
 @permission_classes([IsAuthenticated])
 def create_comment(request,lesson_id):
     lesson = get_object_or_404(PurchasedCourseLesson,id =lesson_id)
+    user = request.user
+    purchased_course = lesson.purchased_course
 
-    if not lesson.purchased_course.user == request.user and not lesson.purchased_course.tutor == request.user:
-        return Response({"error": "You must purchase this course to comment"}, 
-                       status=status.HTTP_403_FORBIDDEN)
+    is_tutor = purchased_course.tutor == user
+    is_purchaser = PurchasedCourseUser.objects.filter(purchased_course=purchased_course, user=user).exists()
+
+    if not (is_tutor or is_purchaser):
+        return Response({'error': "You must purchase this course  to comments."},
+                        status=status.HTTP_403_FORBIDDEN)
+    
     
     parent_id = request.data.get('parent_id')
     content = request.data.get('content')
@@ -49,8 +56,15 @@ def create_comment(request,lesson_id):
 def get_lesson_comments(request,lesson_id):
     lesson = get_object_or_404(PurchasedCourseLesson,id=lesson_id)
 
-    if not lesson.purchased_course.user == request.user and not lesson.purchased_course.tutor == request.user:
-        return Response({'error':"you must purchase this course to view comments"},status=status.HTTP_403_FORBIDDEN)
+    user = request.user
+    purchased_course = lesson.purchased_course
+
+    is_tutor = purchased_course.tutor == user
+    is_purchaser = PurchasedCourseUser.objects.filter(purchased_course=purchased_course, user=user).exists()
+
+    if not (is_tutor or is_purchaser):
+        return Response({'error': "You must purchase this course or be the tutor to view comments."},
+                        status=status.HTTP_403_FORBIDDEN)
     
     comments = LessonComment.objects.filter(lesson=lesson,parent=None)
     serializer = LessonCommentSerializer(comments,many=True,context={'request':request})

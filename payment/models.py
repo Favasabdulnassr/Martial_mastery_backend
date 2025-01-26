@@ -44,27 +44,26 @@ class Payment(models.Model):
             self.last_error = error
         self.save()
 
-        if status == 'successful':
-            self._create_purchased_course()
+        # if status == 'successful':
+        #     self._create_purchased_course()
 
     
-    def _create_purchased_course(self):
-        """Create PurchasedCourse after successful payment"""
-        try:
-            purchased_course = PurchasedCourse.objects.create(
-                user=self.user,
-                course=self.course,
-                tutor=self.course.tutor,
-                course_title=self.course.title,
-                course_description=self.course.description,
-                course_fees=self.amount_paid,
-                is_active=True
-            )
-            purchased_course.create_purchased_lessons()
-            return purchased_course
-        except Exception as e:
-            self.update_status('failed', str(e))
-            raise
+    # def _create_purchased_course(self):
+    #     """Create PurchasedCourse after successful payment"""
+    #     try:
+    #         purchased_course = PurchasedCourse.objects.create(
+    #             course=self.course,
+    #             tutor=self.course.tutor,
+    #             course_title=self.course.title,
+    #             course_description=self.course.description,
+    #             course_fees=self.amount_paid,
+    #             is_active=True
+    #         )
+    #         purchased_course.create_purchased_lessons()
+    #         return purchased_course
+    #     except Exception as e:
+    #         self.update_status('failed', str(e))
+    #         raise
    
 
 
@@ -118,7 +117,6 @@ from cloudinary.models import CloudinaryField
 
 
 class PurchasedCourse(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     tutor =models.ForeignKey( CustomUser, on_delete=models.CASCADE,blank=True,null=True,related_name='Purchase_course')
     course = models.ForeignKey(Course, on_delete=models.SET_NULL, null=True, blank=True)
     course_title = models.CharField(max_length=200)  # Store course title
@@ -128,21 +126,33 @@ class PurchasedCourse(models.Model):
     is_active = models.BooleanField(default=True)  # Marks whether the course is active
 
     def __str__(self):
-        return f"{self.user.email} purchased {self.course_title}"
+        return f"{self.course_title} {self.course.id}"
 
-    def create_purchased_lessons(self):
-        """Creates lessons for the purchased course."""
-        for lesson in self.course.tutorials.all():
-            PurchasedCourseLesson.objects.create(
-                purchased_course=self,
-                title=lesson.title,
-                description=lesson.description,
-                cloudinary_url=lesson.cloudinary_url,
-                thumbnail=lesson.thumbnail,
-                order=lesson.order
-            )
+    # def create_purchased_lessons(self):
+    #     """Creates lessons for the purchased course."""
+    #     for lesson in self.course.tutorials.all():
+    #         PurchasedCourseLesson.objects.create(
+    #             purchased_course=self,
+    #             title=lesson.title,
+    #             description=lesson.description,
+    #             cloudinary_url=lesson.cloudinary_url,
+    #             thumbnail=lesson.thumbnail,
+    #             order=lesson.order
+    #         )
 
 
+
+
+class PurchasedCourseUser(models.Model):
+    purchased_course = models.ForeignKey(PurchasedCourse, on_delete=models.CASCADE, related_name='purchased_users')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='purchased_course_users')
+    purchased_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('purchased_course', 'user')  # Prevent duplicate entries
+
+    def __str__(self):
+        return f"{self.user.email} - {self.purchased_course.course_title}"
 
 class PurchasedCourseLesson(models.Model):
     purchased_course = models.ForeignKey(PurchasedCourse, on_delete=models.CASCADE, related_name='purchased_lessons')
@@ -152,13 +162,14 @@ class PurchasedCourseLesson(models.Model):
     thumbnail = models.ImageField(upload_to='video_thumbnails/', null=True, blank=True)
     order = models.PositiveIntegerField()  # Keep the order of lessons the same
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(auto_now=True)                                                                    
 
     class Meta:
         ordering = ['order']
 
     def __str__(self):
         return f"{self.title} - {self.purchased_course.course_title} {self.id}"
+    
 
 
 
