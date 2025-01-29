@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import PurchasedCourse,Payment
+from .models import PurchasedCourse,Payment,PurchasedCourseUser
+from user_auth.models import CustomUser
 
 # class PaymentSerializer(serializers.ModelSerializer):
 #     tutor = serializers.SerializerMethodField()
@@ -69,3 +70,37 @@ class PurchasedCourseLessonSerializer(serializers.ModelSerializer):
         model = PurchasedCourseLesson
         fields = ['id', 'title', 'description', 'cloudinary_url', 'thumbnail', 'order', 'created_at', 'updated_at']
 
+
+
+
+
+class PurchasedCourseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PurchasedCourse
+        fields = ['id', 'course_title', 'course_description', 'course_fees', 'purchase_date']
+
+class StudentWithCoursesSerializer(serializers.ModelSerializer):
+    purchased_courses = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CustomUser  # Replace with your actual user model
+        fields = ['id', 'email', 'first_name', 'last_name','phone_number', 'purchased_courses']  # Include purchased courses
+
+    def get_purchased_courses(self, obj):
+        # Get the tutor ID from the context
+        tutor_id = self.context.get('tutor_id')
+        
+        # Get all PurchasedCourse instances for the tutor
+        purchased_courses = PurchasedCourse.objects.filter(tutor__id=tutor_id)
+        
+        # Get all PurchasedCourseUser instances for this student and the tutor's courses
+        purchased_course_users = PurchasedCourseUser.objects.filter(
+            user=obj,
+            purchased_course__in=purchased_courses
+        )
+        
+        # Serialize the purchased courses
+        return PurchasedCourseSerializer(
+            [pcu.purchased_course for pcu in purchased_course_users],
+            many=True
+        ).data

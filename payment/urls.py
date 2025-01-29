@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import PaymentViewSet,PurchasedCoursesView, PurchasedCourseLessonListView
 from .views import stripe_webhook,PurchasedCourseLessonDetailView,PurchasedCourseByTutorView
-from .views import TutorPurchasedCourseLessonListView,TutorPurchasedCourseLessonDetailView
+from .views import TutorPurchasedCourseLessonListView,TutorPurchasedCourseLessonDetailView,TutorStudentsListView
 
 
 urlpatterns = [
@@ -14,5 +14,6 @@ urlpatterns = [
 
     path('tutor/purchased-courses/', PurchasedCourseByTutorView.as_view(), name='purchased-courses-by-tutor'),
     path('tutor/courses/<int:course_id>/lessons/', TutorPurchasedCourseLessonListView.as_view(), name='tutor-purchased-course-lessons'),
+     path('tutor/<int:tutor_id>/students/', TutorStudentsListView.as_view(), name='tutor-students'),
 
 ]

@@ -16,7 +16,7 @@ from rest_framework.decorators import action
 from .serializers import PurchasedCourseSerializer
    
 from rest_framework import generics
-from .serializers import PurchasedCourseLessonSerializer
+from .serializers import PurchasedCourseLessonSerializer,StudentWithCoursesSerializer
 from .models import PurchasedCourseLesson
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import NotFound
@@ -305,3 +305,32 @@ class PurchasedCourseByTutorView(generics.ListAPIView):
             raise NotFound("No purchased courses found for your account.")
         
         return purchased_courses
+
+
+
+
+
+class TutorStudentsListView(generics.ListAPIView):
+    serializer_class = StudentWithCoursesSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Get the tutor ID from the URL parameters
+        tutor_id = self.kwargs['tutor_id']
+        
+        # Get all PurchasedCourse instances for the tutor
+        purchased_courses = PurchasedCourse.objects.filter(tutor__id=tutor_id)
+        
+        # Get all PurchasedCourseUser instances for these courses
+        purchased_course_users = PurchasedCourseUser.objects.filter(purchased_course__in=purchased_courses)
+        
+        # Extract unique students from the PurchasedCourseUser instances
+        students = set(pcu.user for pcu in purchased_course_users)
+        
+        return students
+
+    def get_serializer_context(self):
+        # Pass the tutor_id to the serializer context
+        context = super().get_serializer_context()
+        context['tutor_id'] = self.kwargs['tutor_id']
+        return context
