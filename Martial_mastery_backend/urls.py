@@ -27,6 +27,7 @@ urlpatterns = [
     path('',include('Courses.urls')),
     path('payment/',include('payment.urls')),
     path('comments/',include('comments.urls')),
+    path('chat/',include('chat.urls')),
 
 ]
 
