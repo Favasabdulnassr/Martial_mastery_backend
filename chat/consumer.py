@@ -7,7 +7,6 @@ from django.core.exceptions import ObjectDoesNotExist
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):   
-        print('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
 
         self.room_id = self.scope['url_route']['kwargs']['room_id']
         self.room_group_name = f'chat_{self.room_id}'
@@ -68,6 +67,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             self.room_group_name,
             {
                 'type': 'chat_message',
+                'id': str(chat_message.id),
                 'message': message,
                 'sender_id': self.scope['user'].id,
                 'sender_email': self.scope['user'].email,
@@ -81,6 +81,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def chat_message(self,event):
         await self.send(text_data=json.dumps({
+            'id': event['id'],
             'message': event['message'],
                 'sender_id': event['sender_id'],
                 'sender_email': event['sender_email'],

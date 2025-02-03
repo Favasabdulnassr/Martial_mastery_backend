@@ -10,9 +10,9 @@ class ChatMessageSerializer(serializers.ModelSerializer):
         fields = ['id','content','timestamp','sender_email','sender_name','is_read']
 
 
-        def get_sender_name(self,obj):
-            return f"{obj.sender.first_name}"
-        
+    def get_sender_name(self,obj):
+        return f"{obj.sender.first_name}"
+    
 
 class ChatRoomSerializer(serializers.ModelSerializer):
     last_message = serializers.SerializerMethodField()
