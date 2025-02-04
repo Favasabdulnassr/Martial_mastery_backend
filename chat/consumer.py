@@ -56,26 +56,64 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def receive(self,text_data):
         data = json.loads(text_data)
-        message = data['message']
 
-        chat_message = await self.save_message(message)
+        message_type = data.get('type')
+
+        if message_type == 'send_message':
+            message = data['message']
+            chat_message = await self.save_message(message)
+            
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'chat_message',
+                    'id': str(chat_message.id),
+                    'message': message,
+                    'sender_id': self.scope['user'].id,
+                    'sender_email': self.scope['user'].email,
+                    'sender_name': f"{self.scope['user'].first_name} {self.scope['user'].last_name}",
+                    'timestamp': chat_message.timestamp.isoformat()
+                }
+            )
+    
+        elif message_type == 'delete_message':
+            message_id = data.get('message_id')
+            deleted = await self.delete_message(message_id)
+            
+            if deleted:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'delete_chat_message',
+                        'message_id': message_id
+                    }
+                )
 
 
-         
-        # Send message to room group
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'chat_message',
-                'id': str(chat_message.id),
-                'message': message,
-                'sender_id': self.scope['user'].id,
-                'sender_email': self.scope['user'].email,
-                'sender_name': f"{self.scope['user'].first_name} {self.scope['user'].last_name}",
-                'timestamp': chat_message.timestamp.isoformat()
-            }
-        )
 
+
+
+    
+    async def delete_chat_message(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'message_deleted',
+            'message_id': event['message_id']
+        }))
+        
+
+    @database_sync_to_async
+    def delete_message(self, message_id):
+        try:
+            message = ChatMessage.objects.get(
+                id=message_id, 
+                room_id=self.room_id, 
+                sender=self.scope['user']
+            )
+            message.delete()
+            return True
+        except ObjectDoesNotExist:
+            return False
+        
 
 
 

@@ -2,12 +2,20 @@ from rest_framework import serializers
 from .models import ChatMessage,ChatRoom
 
 class ChatMessageSerializer(serializers.ModelSerializer):
+    is_deletable = serializers.SerializerMethodField()
+
     sender_email = serializers.CharField(source='sender.email',read_only=True)
     sender_name = serializers.SerializerMethodField()
     
     class Meta:
         model = ChatMessage
-        fields = ['id','content','timestamp','sender_email','sender_name','is_read']
+        fields = ['id','content','timestamp','sender_email','sender_name','is_read','is_deletable']
+
+    def get_is_deletable(self, obj):
+        request = self.context.get('request')
+        if request and request.user:
+            return obj.sender == request.user
+        return False  
 
 
     def get_sender_name(self,obj):
