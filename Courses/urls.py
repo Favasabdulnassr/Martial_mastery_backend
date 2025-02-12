@@ -1,10 +1,10 @@
 from django.urls import path
 from .views import CourseViewSet,LessonUploadView,LessonViewSet,CourseViewAdmin
-from .views import CourseStatusUpdateView,CourseViewUser,CourseLessonView
+from .views import CourseStatusUpdateView,CourseViewUser,CourseLessonView,UpdateCourseView
 
 
 course_create = CourseViewSet.as_view({'get':'list','post':'create'})
-course_update =  CourseViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})
+course_update =  CourseViewSet.as_view({'get': 'retrieve', 'delete': 'destroy'})
 course_completed = CourseViewSet.as_view({'put': 'mark_as_completed'})
 Lessons_create = LessonViewSet.as_view({'get': 'list'})
 Lessons_update = LessonViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})
@@ -16,6 +16,8 @@ admin_course_detail = CourseViewAdmin.as_view({'get': 'completed_course'})
 urlpatterns = [
     path('course/',course_create, name='course-list-create'),
     path('course/<int:pk>/',course_update, name='course-detail'),
+    path('course/<int:pk>/update/', UpdateCourseView.as_view(), name='course-update'),
+
     path('course/<int:pk>/mark_as_completed/',course_completed, name='course-mark-as-completed'),
     path('course/<int:course_pk>/lesson/', Lessons_create, name='lesson-list-create'),
     path('course/<int:course_pk>/lesson/<int:pk>/', Lessons_update, name='lesson-detail'),

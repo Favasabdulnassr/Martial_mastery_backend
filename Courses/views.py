@@ -13,6 +13,8 @@ import cloudinary.uploader
 from django.conf import settings
 from .models import Course, CourseLesson
 from django.db.models import Q
+from user_auth.models import CustomUser
+
 
 
 
@@ -61,14 +63,24 @@ class CourseViewSet(viewsets.ModelViewSet):
         
         
     
+    # def update(self, request, *args, **kwargs):
+    #     partial = kwargs.pop('partial', False)
+    #     instance = self.get_object()
+    #     serializer = self.get_serializer(instance, data=request.data, partial=partial)
+    #     if 'tutor' not in request.data:
+    #         n = CustomUser.objects.filter(id=self.request.user.id)
+    #         request.data['tutor'] = self.request.user
+
+    #     serializer = self.get_serializer(instance, data=request.data, partial=partial)
     
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response(serializer.data)
+    #     if not serializer.is_valid():  # Check if the serializer is valid
+    #         print("Validation Errors:", serializer.errors)  # Log the validation errors
+    #         return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)  # Return the errors if invalid
+
+    #     serializer.is_valid(raise_exception=True)
+    #     self.perform_update(serializer)
+
+    #     return Response(serializer.data)
     
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -76,6 +88,45 @@ class CourseViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_200_OK)
     
 
+
+
+
+from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError
+from .models import Course
+from .serializers import CourseUpdateSerializer
+from user_auth.permission import IsTutor
+
+class UpdateCourseView(APIView):
+    permission_classes = [IsAuthenticated,IsTutor]  
+    def get_object(self, pk):
+        try:
+            return Course.objects.get(pk=pk)
+        except Course.DoesNotExist:
+            raise ValidationError("Course not found.")
+
+    def put(self, request, pk, *args, **kwargs):
+        course = self.get_object(pk)
+
+        if course.tutor != request.user:
+            return Response({"error": "You do not have permission to update this course."}, status=status.HTTP_403_FORBIDDEN)
+
+        data = request.data.copy()
+
+        if 'tutor' not in data:
+            data['tutor'] = request.user.id  
+
+        serializer = CourseUpdateSerializer(course, data=data, partial=True)  # partial=True allows partial updates
+
+        if not serializer.is_valid():
+            return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 

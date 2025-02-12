@@ -126,21 +126,9 @@ class PurchasedCourse(models.Model):
     is_active = models.BooleanField(default=True)  # Marks whether the course is active
 
     def __str__(self):
-        return f"{self.course_title} {self.course.id}"
+        return f"{self.course_title} "
 
-    # def create_purchased_lessons(self):
-    #     """Creates lessons for the purchased course."""
-    #     for lesson in self.course.tutorials.all():
-    #         PurchasedCourseLesson.objects.create(
-    #             purchased_course=self,
-    #             title=lesson.title,
-    #             description=lesson.description,
-    #             cloudinary_url=lesson.cloudinary_url,
-    #             thumbnail=lesson.thumbnail,
-    #             order=lesson.order
-    #         )
-
-
+ 
 
 
 class PurchasedCourseUser(models.Model):

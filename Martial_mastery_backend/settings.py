@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'comments',
     'channels',
     'chat',
+    'ReportWallet',
 ]
 
 

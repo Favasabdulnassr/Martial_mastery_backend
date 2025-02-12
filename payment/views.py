@@ -22,8 +22,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import NotFound
 from user_auth.permission import IsTutor
 from rest_framework import generics
-
-
+from ReportWallet.models import Wallet
 
 # stripe listen --forward-to http://127.0.0.1:8000/payment/webhook/ --log-level debug
 
@@ -94,13 +93,9 @@ class PaymentViewSet(viewsets.ModelViewSet):
 # @csrf_exempt
 # @require_POST
 def stripe_webhook(request):
-    print("=============== WEBHOOK RECEIVED ===============")
-    print(f"Request Method: {request.method}")
-    print(f"Headers: {request.headers}")
-    
+   
     payload = request.body
     sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
-    print(f"Signature Header: {sig_header}")
 
 
     try:
@@ -114,7 +109,6 @@ def stripe_webhook(request):
         try:
             session = event['data']['object']
             payment_id = session['metadata']['payment_id']
-            print(f"Processing checkout session: {session.id}")
             
             # Get the payment   
             payment = Payment.objects.get(id=payment_id)
@@ -123,6 +117,22 @@ def stripe_webhook(request):
             payment.stripe_payment_intent_id = session['payment_intent']
             payment.payment_status = 'successful'
             payment.save()
+
+
+            tutor_share = int(float(payment.amount_paid) * 0.80)
+
+            # Create wallet entry for tutor
+            Wallet.objects.create(
+                user=payment.course.tutor,
+                transaction_type='course_sale',
+                transaction_details=f"Course purchase: {payment.course.title}",
+                amount=tutor_share,
+                balance=Wallet.objects.filter(user=payment.course.tutor).last().balance + tutor_share if Wallet.objects.filter(user=payment.course.tutor).exists() else tutor_share
+            )
+
+
+
+
 
                        # Check if PurchasedCourse already exists
             purchased_course, created = PurchasedCourse.objects.get_or_create(

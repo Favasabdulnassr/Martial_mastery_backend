@@ -33,11 +33,10 @@ class Course(models.Model):
     updated_at = models.DateTimeField(auto_now=True)  
     completed = models.BooleanField(default=False) 
 
-    
     objects = CourseManager() 
   
     def __str__(self):
-        return f"{self.title} by {self.tutor.email}"
+        return f"{self.title} by {self.tutor.email} by {self.id}"
     
 
 
@@ -47,7 +46,7 @@ class CourseLesson(models.Model):
     description = models.TextField(max_length=200)  # Tutorial description
     cloudinary_url = CloudinaryField('video', resource_type='video')   # Video resource from Cloudinary
     thumbnail = models.ImageField(upload_to='video_thumbnails/', null=True, blank=True)  # Local thumbnail
-    order = models.PositiveIntegerField(unique=True)  
+    order = models.PositiveIntegerField()  
     created_at = models.DateTimeField(auto_now_add=True)  
     updated_at = models.DateTimeField(auto_now=True)  
 

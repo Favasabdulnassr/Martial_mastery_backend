@@ -47,3 +47,21 @@ class CourseCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
         fields = ['id', 'title', 'description', 'duration_weeks', 'fees','tutor']
+
+
+
+from user_auth.models import CustomUser
+
+class CourseUpdateSerializer(serializers.ModelSerializer):
+    tutor = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())  # To allow tutor update by ID
+    tutorials = CourseLessonSerializer(many=True, read_only=True)  # Read-only field for tutorials
+
+    class Meta:
+        model = Course
+        fields = ['id', 'title', 'description', 'tutor', 'duration_weeks', 'fees', 'status', 'completed', 'tutorials']
+
+    def validate(self, data):
+       
+        if 'fees' in data and float(data['fees']) < 0:
+            raise serializers.ValidationError({"fees": "Fees cannot be negative"})
+        return data
