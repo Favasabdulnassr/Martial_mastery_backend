@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import report_course,ReportedCoursesListView,CourseReportDetailsView,TutorWalletView,SendReportEmailsView,UnlistCourseView
+from .views import report_course,ReportedCoursesListView,CourseReportDetailsView
+from .views import TutorWalletView,SendReportEmailsView,UnlistCourseView,TutorWithdrawalView
 
 urlpatterns = [
     path('report/course',report_course,name='report_course'),
@@ -9,5 +10,6 @@ urlpatterns = [
      path('unlist-course/<int:course_id>/', UnlistCourseView.as_view(), name='unlist-course'),
 
     path('tutor-wallet/<int:tutor_id>/', TutorWalletView.as_view(), name='tutor-wallet'),  
+    path('tutor-withdrawal/',TutorWithdrawalView.as_view(),name='withdrawal')
 
 ]

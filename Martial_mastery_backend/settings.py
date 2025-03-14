@@ -63,6 +63,8 @@ INSTALLED_APPS = [
     'channels',
     'chat',
     'ReportWallet',
+    'dashboard',
+    'notifications'
 ]
 
 
@@ -196,6 +198,7 @@ SIMPLE_JWT = {
 
 
 
+
 REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
     # or allow read-only access for unauthenticated users.
@@ -251,3 +254,8 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 
 
 SITE_URL = 'http://localhost:5173'
+
+
+# File storage for temporary files
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'

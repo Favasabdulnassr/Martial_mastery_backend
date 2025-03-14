@@ -16,6 +16,12 @@ from .models import Wallet
 from django.conf import settings
 from django.core.mail import send_mail
 from payment.models import PurchasedCourse
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from Courses.models import Course
+from decimal import Decimal
+from django.utils import timezone
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -158,12 +164,6 @@ class TutorWalletView(APIView):
     
 
 
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from Courses.models import Course
-
 class UnlistCourseView(APIView):
     def post(self, request, course_id):
         try:
@@ -176,4 +176,75 @@ class UnlistCourseView(APIView):
             return Response({'message': 'Course unlisted successfully'}, status=status.HTTP_200_OK)
         except Course.DoesNotExist:
             return Response({'error': 'Course not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+
+class TutorWithdrawalView(APIView):
+    def post(self, request):
+        user_id = request.data.get('user_id')
+        amount = Decimal(request.data.get('amount', 0))
+        
+        try:
+            user = CustomUser.objects.get(id=user_id)
+            wallet = Wallet.objects.filter(user_id=user_id).order_by('-date').first()
+            
+            if not wallet or wallet.balance < amount:
+                return Response({
+                    'error': 'Insufficient balance'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+
+            current_time = timezone.now()
+            new_balance = wallet.balance - amount
+            Wallet.objects.create(
+                user=user,
+                transaction_type='debit',
+                transaction_details=f'money debited by withdrawal',
+                amount=amount,
+                balance=new_balance
+            )
+            
+            # Send email
+            email_subject = "Withdrawal Request Confirmation"
+            email_message = f"""
+            
+Dear {user.first_name},
+
+Your withdrawal request for ${amount} has been received.
+To process your withdrawal, please reply to this email with the following information:
+
+1. Bank Account Number
+2. IFSC Code
+
+Your funds will be credited to your account within three business days after receiving your banking details.
+
+Request Details:
+- Amount: ${amount}
+- Date: {current_time.strftime('%Y-%m-%d %H:%M:%S')}
+
+Best regards,
+Your Platform Team
+            """
+            
+            send_mail(
+                email_subject,
+                email_message,
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                fail_silently=False,
+            )
+            
+            return Response({
+                'message': 'Withdrawal request submitted successfully',
+            }, status=status.HTTP_200_OK)
+            
+        except CustomUser.DoesNotExist:
+            return Response({
+                'error': 'User not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

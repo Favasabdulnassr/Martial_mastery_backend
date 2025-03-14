@@ -13,7 +13,8 @@ import cloudinary.uploader
 from django.conf import settings
 from .models import Course, CourseLesson
 from django.db.models import Q
-from user_auth.models import CustomUser
+
+
 
 
 
@@ -232,6 +233,7 @@ class LessonUploadView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, CourseId, *args, **kwargs):
+        
         try:
             # Configure Cloudinary with credentials
             cloudinary.config(
@@ -317,6 +319,7 @@ class LessonUploadView(APIView):
                 "detail": f"Error processing request: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
+
 
 
 from rest_framework.generics import ListAPIView

@@ -44,30 +44,7 @@ class Payment(models.Model):
             self.last_error = error
         self.save()
 
-        # if status == 'successful':
-        #     self._create_purchased_course()
-
-    
-    # def _create_purchased_course(self):
-    #     """Create PurchasedCourse after successful payment"""
-    #     try:
-    #         purchased_course = PurchasedCourse.objects.create(
-    #             course=self.course,
-    #             tutor=self.course.tutor,
-    #             course_title=self.course.title,
-    #             course_description=self.course.description,
-    #             course_fees=self.amount_paid,
-    #             is_active=True
-    #         )
-    #         purchased_course.create_purchased_lessons()
-    #         return purchased_course
-    #     except Exception as e:
-    #         self.update_status('failed', str(e))
-    #         raise
-   
-
-
-
+       
     
     def create_stripe_session(self):
         """Create Stripe checkout session"""

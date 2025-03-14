@@ -13,17 +13,24 @@ from channels.routing import ProtocolTypeRouter,URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
 from channels.routing import ProtocolTypeRouter,URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
-from chat.routing import websocket_urlpatterns
 from channels.auth import AuthMiddlewareStack
 from chat.middleware import TokenAuthMiddleware
+
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Martial_mastery_backend.settings')
+django_asgi_app = get_asgi_application()
+
+from chat.routing import websocket_urlpatterns as chat_websocket_urlpatternss
+from notifications.routing import websocket_urlpatterns as notification_websocket_url_patterns
+
+combined_websocket_urlpatterns = chat_websocket_urlpatternss + notification_websocket_url_patterns
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
    "websocket": AllowedHostsOriginValidator(
         AuthMiddlewareStack(
             TokenAuthMiddleware(
-                URLRouter(websocket_urlpatterns)
+                URLRouter(combined_websocket_urlpatterns)
             )
         )
     ),

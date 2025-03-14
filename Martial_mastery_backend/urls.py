@@ -29,8 +29,13 @@ urlpatterns = [
     path('comments/',include('comments.urls')),
     path('chat/',include('chat.urls')),
     path('',include('ReportWallet.urls')),
+    path('',include('dashboard.urls')),
+    path('',include('notifications.urls')),
 
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL,document_root = settings.MEDIA_ROOT)
+
+
+    

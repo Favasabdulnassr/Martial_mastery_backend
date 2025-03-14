@@ -162,13 +162,53 @@ def stripe_webhook(request):
                         cloudinary_url=lesson.cloudinary_url,
                         thumbnail=lesson.thumbnail,
                         order=lesson.order
-                    )
+                    )  
+
+
+            from notifications.models import Notification
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+            import json
+            
+            # Create notification in the database
+            notification = Notification.objects.create(
+                recipient=payment.course.tutor,
+                notification_type='purchase',
+                title='New Course Purchase',
+                message=f"{payment.user.first_name} {payment.user.last_name} purchased your course '{payment.course.title}'",
+                course=payment.course
+            )
+            
+            # Send real-time notification via WebSocket
+            try:
+                channel_layer = get_channel_layer()
+                notification_data = {
+                    'id': notification.id,
+                    'type': notification.notification_type,
+                    'title': notification.title,
+                    'message': notification.message,
+                    'created_at': notification.created_at.isoformat(),
+                    'course_id': payment.course.id
+                }
+                
+                async_to_sync(channel_layer.group_send)(
+                    f'notifications_{payment.course.tutor.id}',
+                    {
+                        'type': 'notification_message',
+                        'notification': notification_data
+                    }
+                )
+                print(f"Successfully sent notification to tutor {payment.course.tutor.id}")
+            except Exception as e:
+                print(f"Error sending WebSocket notification: {str(e)}")    
+                
 
             print(f"Successfully processed payment and course purchase for payment_id: {payment_id}")
             return HttpResponse(status=200)
         except Payment.DoesNotExist:
             print(f"Payment not found for session {session['id']}")
             return HttpResponse(status=400)
+        
         except Exception as e:
             print(f"Error processing webhook: {str(e)}")
             return HttpResponse(status=400)

@@ -10,7 +10,7 @@ class CustomUserManager(BaseUserManager):
         email = self.normalize_email(email)
         user = self.model(email=email,phone_number=phone_number,password=password,**extra_fields)
         user.set_password(password)
-        user.save(using=self.db)
+        user.save(using=self.db)    
         return user
 
     def create_superuser(self,email,phone_number,password=None,**extra_fields):
@@ -36,7 +36,7 @@ class CustomUser(AbstractBaseUser,PermissionsMixin):
     status = models.BooleanField(default=True)
     role = models.CharField(max_length=20,choices=ROLE_CHOICES,default=DEFAULT_ROLE)
     is_staff = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)  # Add this line if missing
+    is_active = models.BooleanField(default=True)  
 
     profile = models.ImageField(upload_to='userProfiles',null=True,blank=True)
 

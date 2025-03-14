@@ -76,10 +76,12 @@ class PurchasedCourseLessonSerializer(serializers.ModelSerializer):
 
 class PurchasedCourseSerializer(serializers.ModelSerializer):
     tutor_id = serializers.IntegerField(source='tutor.id',read_only=True)
+    tutor_name = serializers.CharField(source='tutor.first_name', read_only=True)  
+    course_duration = serializers.CharField(source='course.duration_weeks',read_only=True)
 
     class Meta:
         model = PurchasedCourse
-        fields = ['id','tutor_id', 'course_title', 'course_description', 'course_fees', 'purchase_date']
+        fields = ['id','tutor_id', 'course_title', 'course_description', 'course_fees', 'purchase_date','tutor_name','course_duration']
 
 class StudentWithCoursesSerializer(serializers.ModelSerializer):
     purchased_courses = serializers.SerializerMethodField()
