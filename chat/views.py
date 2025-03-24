@@ -21,6 +21,9 @@ class ChatViewSet(viewsets.ModelViewSet):
         student_id = request.data.get('student_id')
         tutor_id = request.data.get('tutor_id')
 
+        print('ssssssssssssssssssssssssssss',student_id,tutor_id)
+
+
 
         # Verify that the student has purchased a course from this tutor
         has_purchased = PurchasedCourseUser.objects.filter(

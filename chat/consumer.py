@@ -61,7 +61,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
         if message_type == 'send_message':
             message = data['message']
-            chat_message = await self.save_message(message)
+            chat_message = await self.save_message(message,message_type)
             
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -72,9 +72,13 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     'sender_id': self.scope['user'].id,
                     'sender_email': self.scope['user'].email,
                     'sender_name': f"{self.scope['user'].first_name} {self.scope['user'].last_name}",
-                    'timestamp': chat_message.timestamp.isoformat()
+                    'timestamp': chat_message.timestamp.isoformat(),
+                    'message_type': message_type 
+
                 }
             )
+    
+        
     
         elif message_type == 'delete_message':
             message_id = data.get('message_id')
@@ -89,18 +93,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     }
                 )
 
-
-
-
-
-    
     async def delete_chat_message(self, event):
         await self.send(text_data=json.dumps({
             'type': 'message_deleted',
             'message_id': event['message_id']
         }))
         
-
     @database_sync_to_async
     def delete_message(self, message_id):
         try:
@@ -113,25 +111,27 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             return True
         except ObjectDoesNotExist:
             return False
-        
 
-
-
-    async def chat_message(self,event):
-        await self.send(text_data=json.dumps({
+    async def chat_message(self, event):
+        message_data = {
             'id': event['id'],
             'message': event['message'],
-                'sender_id': event['sender_id'],
-                'sender_email': event['sender_email'],
-                'sender_name': event['sender_name'],
-                'timestamp': event['timestamp']
-            }))
+            'sender_id': event['sender_id'],
+            'sender_email': event['sender_email'],
+            'sender_name': event['sender_name'],
+            'timestamp': event['timestamp'],
+            'message_type':event['message_type']
+        }
+        await self.send(text_data=json.dumps(message_data))
+        
+      
 
     @database_sync_to_async
-    def save_message(self, message):
+    def save_message(self, message,message_type):
         chat_room = ChatRoom.objects.get(id=self.room_id)
         return ChatMessage.objects.create(
             room=chat_room,
             sender=self.scope['user'],
-            content=message
-        )    
+            content=message,
+            message_type=message_type 
+        )
