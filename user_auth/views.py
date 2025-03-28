@@ -104,7 +104,7 @@ class GoogleSignInView(APIView):
                 'profile':None
             }
 
-            if user.profile and hasattr(user.profile, 'url'):
+            if user.profile :
                 response_data['profile'] = request.build_absolute_uri(user.profile.url)
 
 

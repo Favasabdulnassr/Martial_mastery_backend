@@ -6,7 +6,7 @@ class NotificationSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Notification
-        fields = ['id', 'notification_type', 'title', 'message', 'created_at', 'read', 'course', 'course_title']
+        fields = ['id', 'notification_type', 'title', 'message', 'created_at','recipient', 'course', 'course_title']
     
     def get_course_title(self, obj):
         if obj.course:
