@@ -7,9 +7,14 @@ from jwt import decode as jwt_decode
 from rest_framework_simplejwt.exceptions import InvalidToken,TokenError
 from django.conf import settings
 from urllib.parse import parse_qs
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+logger = logging.getLogger(__name__)
 
 class TokenAuthMiddleware(BaseMiddleware):
     async def __call__(self, scope, receive, send):
+        logger.info('hhhhhhhhhhhhhhhhhhhhhhelloooooooooooooooo')
         # Get the token from query parameters
         query_string = scope.get('query_string', b'').decode()
         # query_params = dict(param.split('=') for param in query_string.split('&') if param)

@@ -103,7 +103,7 @@ class PurchasedCourse(models.Model):
     is_active = models.BooleanField(default=True)  # Marks whether the course is active
 
     def __str__(self):
-        return f"{self.course_title} "
+        return f"{self.course_title} by {self.id}"
 
  
 
@@ -117,7 +117,7 @@ class PurchasedCourseUser(models.Model):
         unique_together = ('purchased_course', 'user')  # Prevent duplicate entries
 
     def __str__(self):
-        return f"{self.user.email} - {self.purchased_course.course_title}"
+        return f"{self.user.email} - {self.purchased_course.course_title} by {self.purchased_course.id}"
 
 class PurchasedCourseLesson(models.Model):
     purchased_course = models.ForeignKey(PurchasedCourse, on_delete=models.CASCADE, related_name='purchased_lessons')

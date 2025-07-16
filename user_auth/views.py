@@ -53,6 +53,7 @@ class GoogleSignInView(APIView):
                 'redirect_uri':"http://localhost:5173",  # Must match the one used in frontend
                 'grant_type': 'authorization_code'
             }
+            print('daaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',data)
             
             token_response = http_requests.post(token_endpoint, data=data)
             token_data = token_response.json()
@@ -147,67 +148,126 @@ class RegisterView(APIView):
 
 
             
-            if role == 'student':
-                phone_number = serializer.validated_data['phone_number']
-                try:
-                    # Parse phone number with default region
-
-                    parsed_number = phonenumbers.parse(phone_number, "IN")    # Replace "IN" with your default country code (e.g., "US" for the USA)
-
-                    # Check if the number is valid
-                    if not phonenumbers.is_valid_number(parsed_number):
-                        return Response({'message': 'Invalid phone number'}, status=status.HTTP_400_BAD_REQUEST)
-
-                    # Format the number to E.164 format
-                    formatted_number = phonenumbers.format_number(parsed_number, phonenumbers.PhoneNumberFormat.E164)
-
-                    # Send OTP via Twilio
-                    client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-                    client.messages.create(
-                        to=formatted_number,  # Use formatted number
-                        from_=settings.TWILIO_NUMBER,
-                        body=f"Your OTP is {otp}"
-                    )
-
-                    return Response(
-                        {'message': 'OTP sent successfully. Verify to complete registration',
-                        'otp_expiration': expiration_time.isoformat(),
-                        'session_id': request.session.session_key,  # Send the session ID (cookie)
-
-                        
-                        },
-                        status=status.HTTP_201_CREATED
-                    )
-
-                except phonenumbers.phonenumberutil.NumberParseException:
-                    return Response({'message': 'Invalid phone number format'}, status=status.HTTP_400_BAD_REQUEST)
-
-            elif role == 'tutor':
-                subject = 'your 6 digit OTP for email verification'
-                message = f"Your email verification is {otp}"
-                from_email = settings.EMAIL_HOST_USER
-                recipient_list = [recipient_mail]
-                send_mail(subject,message,from_email,recipient_list,fail_silently=False)
-
-                return Response(
-                        {'message': 'OTP sent successfully. Verify to complete registration',
-                        'otp_expiration': expiration_time.isoformat(),
-                        'session_id': request.session.session_key,  # Send the session ID (cookie)
-
-                        
-                        },
-                        status=status.HTTP_201_CREATED
-                    )
-
+             # Send OTP via email for all users (both students and tutors)
+            subject = 'Your 6 digit OTP for email verification'
+            message = f"Your email verification OTP is {otp}"
+            from_email = settings.EMAIL_HOST_USER
+            recipient_list = [recipient_mail]
             
-        print("Serializer errors",serializer.errors)
+            try:
+                send_mail(subject, message, from_email, recipient_list, fail_silently=False)
+                
+                return Response(
+                    {
+                        'message': 'OTP sent successfully to your email. Verify to complete registration',
+                        'session_id': request.session.session_key,
+                    },
+                    status=status.HTTP_201_CREATED
+                )
+            except Exception as e:
+                return Response(
+                    {'message': 'Failed to send OTP. Please try again.'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+        print("Serializer errors", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
+
+
+
+
+
+class ResendOtpView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        logger.info("Resend OTP endpoint called")
+
+        session_id = request.data.get('sessionId')
+        logger.info(f"Session ID received from request: {session_id}")
+
+        if not session_id:
+            logger.error("Session ID is missing in the request")
+            return Response({'error': 'Session ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            session = Session.objects.get(session_key=session_id)
+            logger.info("Session object retrieved successfully")
+            session_data = session.get_decoded()
+            logger.info(f"Session data decoded: {session_data}")
+        except Session.DoesNotExist:
+            logger.error("Invalid session ID. Session does not exist.")
+            return Response({'error': 'Invalid session ID'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get email and registration data
+        registration_data = session_data.get('registration_data')
+        logger.info(f"Registration data extracted from session: {registration_data}")
+
+        if not registration_data:
+            logger.error("No registration data found in session")
+            return Response({'error': 'No registration data found in session'}, status=status.HTTP_400_BAD_REQUEST)
+
+        recipient_mail = registration_data.get('email')
+        logger.info(f"Recipient email extracted: {recipient_mail}")
+
+        if not recipient_mail:
+            logger.error("Email not found in session registration data")
+            return Response({'error': 'Email not found in session data'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Generate new OTP
+            new_otp = str(random.randint(100000, 999999))
+            logger.info(f"Generated new OTP: {new_otp}")
+
+            expiration_time = datetime.now() + timedelta(minutes=2)
+            logger.info(f"New OTP expiration time: {expiration_time}")
+
+            # Update session with new OTP
+            session_data['otp'] = new_otp
+            session_data['otp_expiration'] = expiration_time.isoformat()
+            session.session_data = Session.objects.encode(session_data)
+            session.save()
+            logger.info("Session updated with new OTP and expiration time")
+
+            # Send the new OTP email
+            subject = 'Resent OTP for Email Verification'
+            message = f"Your new OTP is {new_otp}"
+            from_email = settings.EMAIL_HOST_USER
+            recipient_list = [recipient_mail]
+
+            send_mail(subject, message, from_email, recipient_list, fail_silently=False)
+            logger.info(f"Sent OTP email to {recipient_mail}")
+
+            return Response(
+                {
+                    'message': 'OTP resent successfully.',
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            logger.exception("Error while resending OTP")
+            return Response(
+                {'error': 'Failed to resend OTP. Please try again.', 'details': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class VerifyOtpView(APIView):
     permission_classes = [AllowAny]
-    
 
     def post(self, request):
 
@@ -272,7 +332,7 @@ class ProfileUpdateView(APIView):
     permission_classes=[IsAuthenticated]
 
     def put(self,request):
-        serializer = ProfileUpdateSerializer(request.user,data = request.data,partial=True)
+        serializer = ProfileUpdateSerializer(request.user,data = request.data,partial=True, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data,status=status.HTTP_200_OK)
@@ -374,12 +434,8 @@ class TutorRegister(APIView):
     
 
     def post(self,request):
-        print('ddddddddddddatat',request.data)
         serializer = RegisterSerializer(data=request.data)
-        print('suuuuuuuuuuuuuuuuuuuui',serializer)
-        print('vvvvvvvv')
         if serializer.is_valid():
-            print('ccccccccccccc')
             serializer.save()
 
             return Response(

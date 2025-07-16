@@ -28,8 +28,13 @@ from ReportWallet.models import Wallet
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 import logging
+logging.basicConfig(level=logging.DEBUG)
 
 logger = logging.getLogger(__name__)
+
+
+
+
 
 class PaymentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -228,11 +233,15 @@ def stripe_webhook(request):
 
 
 class PurchasedCoursesView(APIView):
+  
     permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
     
     def get(self, request):
         # Filter purchased courses for the authenticated user
         purchased_courses_users = PurchasedCourseUser.objects.filter(user=request.user)
+        logger.info("Test log from view is working.")
+        print('wwwwwwwwwwwwwwwwwwwwwwwwwwwwww   ')
+
         purchased_courses = [pcu.purchased_course for pcu in purchased_courses_users]
         
         # Serialize the data
@@ -352,7 +361,7 @@ class PurchasedCourseByTutorView(generics.ListAPIView):
         purchased_courses = PurchasedCourse.objects.filter(tutor=user)
         
         if not purchased_courses.exists():
-            raise NotFound("No purchased courses found for your account.")
+            raise NotFound("No purchased courses found for your account.Text")
         
         return purchased_courses
 

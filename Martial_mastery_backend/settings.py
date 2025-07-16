@@ -97,6 +97,8 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.VideoMediaCloudinaryStorage'
 
 
 
+
+
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.getenv('CLOUD_NAME'),
     'API_KEY': os.getenv('API_KEY'),
@@ -189,8 +191,8 @@ AUTH_USER_MODEL = 'user_auth.CustomUser'
 
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),       # Adjust the time as per your requirement
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=3),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=700),       # Adjust the time as per your requirement
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=10),
     'ROTATE_REFRESH_TOKENS': True,                      # Rotates refresh token on each refresh request
     'BLACKLIST_AFTER_ROTATION': True,                   # Blacklists old refresh tokens
     'AUTH_HEADER_TYPES': ('Bearer',),                   # Type of token header

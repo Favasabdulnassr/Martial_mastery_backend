@@ -85,7 +85,37 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 class ProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('first_name','last_name','email','phone_number','profile','experience','bio')       
+        fields = ('first_name','last_name','email','phone_number','profile','experience','bio') 
+
+
+
+    def validate_first_name(self, value):
+        if not value.isalpha():
+            raise serializers.ValidationError("First name should only contain letters.")
+        if len(value) < 3:
+            raise serializers.ValidationError("First name must be at least 2 characters long.")
+        return value
+
+    def validate_last_name(self, value):
+        if value and not value.isalpha():
+            raise serializers.ValidationError("Last name should only contain letters.")
+        return value
+
+    def validate_email(self, value):
+        user = self.context['request'].user
+        if User.objects.exclude(pk=user.pk).filter(email=value).exists():
+            raise serializers.ValidationError("This email is already in use.")
+        return value
+
+    def validate_phone_number(self, value):
+        if not value.isdigit():
+            raise serializers.ValidationError("Phone number must contain only digits.")
+        if len(value) != 10:
+            raise serializers.ValidationError("Phone number must be at least 10 digits.")
+        user = self.context['request'].user
+        if User.objects.exclude(pk=user.pk).filter(phone_number=value).exists():
+            raise serializers.ValidationError("This phone number is already in use.")
+        return value          
 
 
 
@@ -94,4 +124,6 @@ class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = fields = ['id', 'email', 'first_name', 'last_name', 'phone_number']
+    
+        
             

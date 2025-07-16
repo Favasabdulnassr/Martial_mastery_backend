@@ -4,10 +4,14 @@ from channels.db import database_sync_to_async
 import json.scanner
 from .models import ChatRoom,ChatMessage
 from django.core.exceptions import ObjectDoesNotExist
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+logger = logging.getLogger(__name__)
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):   
-
+        logger.info('ooooooooooooooooooooooooooookkkkkkkkkkkkkkkk')
         self.room_id = self.scope['url_route']['kwargs']['room_id']
         self.room_group_name = f'chat_{self.room_id}'
 
