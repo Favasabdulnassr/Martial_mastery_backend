@@ -59,26 +59,34 @@ Martial Mastery is a Django-based backend for an online martial arts training pl
 
 ## ⚙️ Setup Instructions
 
-### 1. Clone the Repository
 
 
-```bash
-git clone https://github.com/yourusername/martial-mastery-backend.git
+
+
+1. Clone the Repository
+
+```
+git clone https://github.com/Favasabdulnassr/Martial_mastery_backend.git
 cd martial-mastery-backend
+
+```
 
 
 2. Create Virtual Environment and Install Dependencies
 
-bash
+```
 python -m venv venv
 source venv/bin/activate  # on Windows: venv\Scripts\activate
 pip install -r requirements.txt
+
+```
 
 
 3. Configure Environment Variables
 
 Create a .env file in the root directory and set the following:
 
+```
 env
 MY_SECRET_KEY=your_secret_key
 
@@ -101,31 +109,35 @@ MY_TWILIO_AUTH_TOKEN=your_twilio_token
 MY_TWILIO_NUMBER=your_twilio_number
 MY_ACCOUNT_SID=your_twilio_sid
 
+```
 
 4. Run Migrations and Create Superuser
 
-bash
+```
 python manage.py makemigrations
 python manage.py migrate
 python manage.py createsuperuser
 
+```
 
 5. Run the Server
 
-bash
+```
 python manage.py runserver
 
 ```
 
 
-📁 Media & Static Files
-Media Files: Uploaded videos are stored in Cloudinary
+## 📁 Media & Static Files
 
-Static Files: Default static directory used (custom configuration can be added)
+  - Media Files: Uploaded videos are stored in Cloudinary
 
-🔐 Authentication
-JWT-based authentication using Simple JWT
+  - Static Files: Default static directory used (custom configuration can be added)
 
-Token refresh and rotation enabled
+## 🔐 Authentication
 
-Custom user model with email as USERNAME_FIELD
+  - JWT-based authentication using Simple JWT
+
+  - Token refresh and rotation enabled
+
+  - Custom user model with email as USERNAME_FIELD
