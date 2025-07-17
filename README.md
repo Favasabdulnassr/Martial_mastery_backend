@@ -68,6 +68,7 @@ cd martial-mastery-backend
 
 
 2. Create Virtual Environment and Install Dependencies
+
 bash
 python -m venv venv
 source venv/bin/activate  # on Windows: venv\Scripts\activate
@@ -75,6 +76,7 @@ pip install -r requirements.txt
 
 
 3. Configure Environment Variables
+
 Create a .env file in the root directory and set the following:
 
 env
@@ -109,8 +111,11 @@ python manage.py createsuperuser
 
 
 5. Run the Server
+
 bash
 python manage.py runserver
+
+```
 
 
 📁 Media & Static Files
