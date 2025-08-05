@@ -240,7 +240,6 @@ class PurchasedCoursesView(APIView):
         # Filter purchased courses for the authenticated user
         purchased_courses_users = PurchasedCourseUser.objects.filter(user=request.user)
         logger.info("Test log from view is working.")
-        print('wwwwwwwwwwwwwwwwwwwwwwwwwwwwww   ')
 
         purchased_courses = [pcu.purchased_course for pcu in purchased_courses_users]
         
