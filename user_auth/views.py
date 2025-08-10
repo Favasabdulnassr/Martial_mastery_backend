@@ -28,17 +28,9 @@ from datetime import datetime,timedelta
 
 logger = logging.getLogger(__name__)
 
-
-
-
-# from rest_framework_simplejwt.tokens import RefreshToken,AccessToken
-
 User = get_user_model()
 
 # Create your views here.
-
-
-
 
 class GoogleSignInView(APIView):
     def post(self,request):
@@ -50,10 +42,9 @@ class GoogleSignInView(APIView):
                 'code': code,
                 'client_id': settings.GOOGLE_CLIENT_ID,
                 'client_secret': settings.GOOGLE_CLIENT_SECRET,
-                'redirect_uri':"http://localhost:5173",  # Must match the one used in frontend
+                'redirect_uri':"http://localhost:5173",  
                 'grant_type': 'authorization_code'
             }
-            print('daaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',data)
             
             token_response = http_requests.post(token_endpoint, data=data)
             token_data = token_response.json()
@@ -108,9 +99,6 @@ class GoogleSignInView(APIView):
             if user.profile :
                 response_data['profile'] = request.build_absolute_uri(user.profile.url)
 
-
-
-
             return Response(response_data   )  
         
         except Exception as e:
@@ -142,11 +130,8 @@ class RegisterView(APIView):
 
             expiration_time = datetime.now() + timedelta(minutes=2)
             request.session['otp_expiration'] = expiration_time.isoformat()
-
             
             request.session.save()
-
-
             
              # Send OTP via email for all users (both students and tutors)
             subject = 'Your 6 digit OTP for email verification'
@@ -170,12 +155,8 @@ class RegisterView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
-        print("Serializer errors", serializer.errors)
+        logger.error("Serializer errors", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
 
 
 class ResendOtpView(APIView):
@@ -282,11 +263,9 @@ class VerifyOtpView(APIView):
             return Response({'error': 'Invalid session ID or session does not exist.'}, status=status.HTTP_400_BAD_REQUEST)
 
          # Extract necessary data from the session
-
         session_otp = session_data.get('otp')
         registration_data = session_data.get('registration_data')
         otp_expiration = session_data.get('otp_expiration')
-
 
         # Check if session data exists
         if not session_otp or not registration_data or not otp_expiration:
@@ -322,9 +301,7 @@ class VerifyOtpView(APIView):
 
 class MyTokenObtainPairView(TokenObtainPairView):
     # Custom view to use the custom token serializer
-    
     serializer_class = MyTokenObtainPairSerializer
-
 
 
 
@@ -350,10 +327,7 @@ class ProfilePictureView(APIView):
 
     def post(self,request):
         user = request.user
-        print(user)
-        print(request)
         profile_Picture =  request.FILES.get('profile')
-        print(profile_Picture)
 
         if not profile_Picture:
             return Response({"detail":"No file provided"},status=status.HTTP_400_BAD_REQUEST)      
@@ -374,7 +348,6 @@ class ProfilePictureView(APIView):
 
 class UserListView(APIView):
     permission_classes = [IsAuthenticated]
-
 
     class StandardResultsSetPagination(PageNumberPagination):
         page_size = 5
@@ -431,8 +404,6 @@ class TutorListView(APIView):
 class TutorRegister(APIView):
     permission_classes = [AllowAny]
 
-    
-
     def post(self,request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
@@ -454,9 +425,6 @@ class ChangePassword(APIView):
         current_password = request.data.get('current_password')
         new_password = request.data.get('new_password')
         confirm_password = request.data.get('confirm_password')  # Get confirm password from request
-
-
-
         user = request.user
         
         if not user.check_password(current_password):
@@ -514,12 +482,10 @@ class ForgotPasswordView(APIView):
                 settings.EMAIL_HOST_USER,
                 [email],
                 fail_silently=False
-
             )
 
             return Response({'message': 'Password reset link sent to your email.Previous reset links have been invalidated.'}, 
                           status=status.HTTP_200_OK)
-        
         except CustomUser.DoesNotExist:
             time.sleep(1)  
 
@@ -539,12 +505,10 @@ class ResetPasswordView(APIView):
                 expires_at__gt=timezone.now()
             ).first()
 
-
             if not token_record:
                 return Response({
                     'error': 'Invalid or expired reset link'
                 },status=status.HTTP_400_BAD_REQUEST)
-
 
             user =  CustomUser.objects.get(id=payload['user_id'])
 
@@ -565,11 +529,8 @@ class ResetPasswordView(APIView):
                 is_valid = True
             ).update(is_valid = False)
 
-
-
             return Response({'message': 'Password reset successful'}, 
-                          status=status.HTTP_200_OK)
-        
+                          status=status.HTTP_200_OK)        
         except jwt.ExpiredSignatureError:
             return Response({'error': 'Reset link has expired'}, 
                           status=status.HTTP_400_BAD_REQUEST)
@@ -598,10 +559,8 @@ def tutor_students(request):
    
     if request.user.role != 'tutor':
         return Response({'error': 'Only tutors can access this endpoint'}, status=400)
-
     # Get search parameter
     search_query = request.GET.get('search', '')
-    
     # Get students who purchased the tutor's courses
     students = CustomUser.objects.filter(
         role='student',
@@ -609,7 +568,6 @@ def tutor_students(request):
     ).distinct().annotate(
         purchased_tutorials=Count('purchasedcourse', filter=Q(purchasedcourse__tutor=request.user,purchasedcourse__is_active=True ))
     )
-    print('vallathum nadakko',students)
     
     # Apply search if provided
     if search_query:

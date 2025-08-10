@@ -111,12 +111,10 @@ MY_ACCOUNT_SID=your_twilio_sid
 
 ```
 
-4. Run Migrations and Create Superuser
+4. Run Migrations
 
 ```
-python manage.py makemigrations
 python manage.py migrate
-python manage.py createsuperuser
 
 ```
 

@@ -1,5 +1,4 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.core.validators import MinValueValidator
 from cloudinary.models import CloudinaryField
 from user_auth.models import CustomUser
@@ -8,12 +7,6 @@ from django.conf import settings
 
 
 
-class CourseManager (models.Manager):
-    def approved(self):
-        return self.filter(status='approved')
-    
-    def completed(self):
-        return self.filter(completed=True)
         
 
 class Course(models.Model):
@@ -33,7 +26,6 @@ class Course(models.Model):
     updated_at = models.DateTimeField(auto_now=True)  
     completed = models.BooleanField(default=False) 
 
-    objects = CourseManager() 
   
     def __str__(self):
         return f"{self.title} by {self.tutor.email} by {self.id}"
@@ -42,9 +34,9 @@ class Course(models.Model):
 
 class CourseLesson(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='tutorials')
-    title = models.CharField(max_length=200)  # Tutorial title
-    description = models.TextField(max_length=200)  # Tutorial description
-    cloudinary_url = CloudinaryField('video', resource_type='video')   # Video resource from Cloudinary
+    title = models.CharField(max_length=200)  
+    description = models.TextField(max_length=200)  
+    cloudinary_url = CloudinaryField('video', resource_type='video')   
     thumbnail = models.ImageField(upload_to='video_thumbnails/', null=True, blank=True)  # Local thumbnail
     order = models.PositiveIntegerField()  
     created_at = models.DateTimeField(auto_now_add=True)  

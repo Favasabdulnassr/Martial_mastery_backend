@@ -2,19 +2,6 @@ from rest_framework import serializers
 from .models import PurchasedCourse,Payment,PurchasedCourseUser
 from user_auth.models import CustomUser
 
-# class PaymentSerializer(serializers.ModelSerializer):
-#     tutor = serializers.SerializerMethodField()
-#     class Meta:
-#         model = PurchasedCourse
-#         fields = ['id', 'user', 'course', 'tutor','amount_paid', 'payment_status', 'payment_date', 'stripe_session_id', 'stripe_payment_intent_id']
-
-#     def create(self, validated_data):
-#         # You can add additional logic for creating a Payment instance if necessary.
-#         return super().create(validated_data)
-
-
-# payment/serializers.py
-
 
 
 class PaymentSerializer(serializers.ModelSerializer):
@@ -93,11 +80,7 @@ class StudentWithCoursesSerializer(serializers.ModelSerializer):
     def get_purchased_courses(self, obj):
         # Get the tutor ID from the context
         tutor_id = self.context.get('tutor_id')
-        
-        # Get all PurchasedCourse instances for the tutor
         purchased_courses = PurchasedCourse.objects.filter(tutor__id=tutor_id)
-        
-        # Get all PurchasedCourseUser instances for this student and the tutor's courses
         purchased_course_users = PurchasedCourseUser.objects.filter(
             user=obj,
             purchased_course__in=purchased_courses

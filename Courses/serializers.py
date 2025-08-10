@@ -17,7 +17,6 @@ class CourseLessonSerializer(serializers.ModelSerializer):
         read_only_fields = ['order']
 
     def validate(self, data):
-    # Ensure required fields are present
         if not data.get('title'):
             raise serializers.ValidationError({"title": "Title is required"})
         if not data.get('description'):
@@ -53,8 +52,8 @@ class CourseCreateSerializer(serializers.ModelSerializer):
 from user_auth.models import CustomUser
 
 class CourseUpdateSerializer(serializers.ModelSerializer):
-    tutor = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all())  # To allow tutor update by ID
-    tutorials = CourseLessonSerializer(many=True, read_only=True)  # Read-only field for tutorials
+    tutor = serializers.PrimaryKeyRelatedField(queryset=CustomUser.objects.all()) 
+    tutorials = CourseLessonSerializer(many=True, read_only=True)  
 
     class Meta:
         model = Course

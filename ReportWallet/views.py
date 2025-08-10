@@ -22,6 +22,12 @@ from rest_framework import status
 from Courses.models import Course
 from decimal import Decimal
 from django.utils import timezone
+import logging
+
+
+logging.basicConfig(level=logging.DEBUG)
+
+logger = logging.getLogger(__name__)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -29,9 +35,7 @@ def report_course(request):
     serializer =CourseReportSerializer(data=request.data)
     if serializer.is_valid():
         course =  get_object_or_404(PurchasedCourse,id=request.data.get('course'))
-        print(course)
         tutor = get_object_or_404(CustomUser,id=request.data.get('tutorId'))
-        print(tutor)
 
         if CourseReport.objects.filter(user=request.user,course=course).exists():
             return Response(
@@ -39,13 +43,12 @@ def report_course(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        report = serializer.save(
+        serializer.save(
             user=request.user,
             course = course,
             tutor = tutor,
 
         )
-
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -98,8 +101,6 @@ class CourseReportDetailsView(generics.ListAPIView):
             'details',
            
         )
-
-
         report_details = [{
             'id':report['id'],
             'student':report['user__first_name'],
@@ -121,16 +122,13 @@ class SendReportEmailsView(generics.CreateAPIView):
     
     def create(self, request):
         course_id  = request.data.get('courseIds')
-        print('ppppppppppppppppppppppppppppppppppppppppppppppppp',course_id)
         email_content = request.data.get('emailContent', '')
         
         if not course_id:
             return Response({'error': 'courseIds is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         course = PurchasedCourse.objects.get(id=course_id )
-        print('mmmmmmmmmmmmmmmmm',course)
         tutor = course.tutor
-        print('lllllllllllllllllllllllllll',tutor.email)    
         try:
             send_mail(
                 'Course Report Notification',
@@ -140,7 +138,7 @@ class SendReportEmailsView(generics.CreateAPIView):
                 fail_silently=False,
             )
         except Exception as e:
-            print(f"Failed to send email to {tutor.email}: {str(e)}")
+            logger.error(f"Failed to send email to {tutor.email}: {str(e)}")
         
 
         return Response({
@@ -167,9 +165,7 @@ class TutorWalletView(APIView):
 class UnlistCourseView(APIView):
     def post(self, request, course_id):
         try:
-            print('aaaaaaaaaa')
             course = Course.objects.get(id=course_id)
-            print('ssssssssssss',course)
             course.completed = False
             course.status = 'rejected'
             course.save()

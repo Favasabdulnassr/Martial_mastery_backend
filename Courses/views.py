@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
-from .serializers import CourseSerialzer,CourseLessonSerializer,CourseCreateSerializer
+from .serializers import CourseSerialzer,CourseLessonSerializer,CourseCreateSerializer,CourseUpdateSerializer
 from user_auth.permission import IsTutor,IsAdmin
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
@@ -13,7 +13,9 @@ import cloudinary.uploader
 from django.conf import settings
 from .models import Course, CourseLesson
 from django.db.models import Q
-
+from rest_framework.exceptions import ValidationError
+from .models import Course
+from user_auth.permission import IsTutor
 
 
 
@@ -26,7 +28,6 @@ class CourseViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Course.objects.filter(tutor=self.request.user)
     
-
     
     def get_serializer_class(self):
         if self.action == 'create':
@@ -34,11 +35,9 @@ class CourseViewSet(viewsets.ModelViewSet):
         return CourseSerialzer
 
 
-
     @action(detail=True,methods=['put'])
     def mark_as_completed(self,request,pk=None):
         course = self.get_object()
-        print(course)
 
         if not course.tutorials.exists():
             return Response(
@@ -61,28 +60,6 @@ class CourseViewSet(viewsets.ModelViewSet):
                              status=status.HTTP_200_OK
                             )
 
-        
-        
-    
-    # def update(self, request, *args, **kwargs):
-    #     partial = kwargs.pop('partial', False)
-    #     instance = self.get_object()
-    #     serializer = self.get_serializer(instance, data=request.data, partial=partial)
-    #     if 'tutor' not in request.data:
-    #         n = CustomUser.objects.filter(id=self.request.user.id)
-    #         request.data['tutor'] = self.request.user
-
-    #     serializer = self.get_serializer(instance, data=request.data, partial=partial)
-    
-    #     if not serializer.is_valid():  # Check if the serializer is valid
-    #         print("Validation Errors:", serializer.errors)  # Log the validation errors
-    #         return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)  # Return the errors if invalid
-
-    #     serializer.is_valid(raise_exception=True)
-    #     self.perform_update(serializer)
-
-    #     return Response(serializer.data)
-    
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         self.perform_destroy(instance)
@@ -90,16 +67,6 @@ class CourseViewSet(viewsets.ModelViewSet):
     
 
 
-
-
-from rest_framework import status
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import ValidationError
-from .models import Course
-from .serializers import CourseUpdateSerializer
-from user_auth.permission import IsTutor
 
 class UpdateCourseView(APIView):
     permission_classes = [IsAuthenticated,IsTutor]  
@@ -135,8 +102,6 @@ class UpdateCourseView(APIView):
 class CourseViewAdmin(viewsets.ModelViewSet):
     permission_classes =[IsAuthenticated,IsAdmin]
     serializer_class = CourseSerialzer
-
-
 
     @action(detail=False, methods=['get'])
     def completed(self, request):
@@ -329,7 +294,8 @@ class CourseViewUser(ListAPIView):
     serializer_class = CourseSerialzer
 
     def get_queryset(self):
-        return Course.objects.completed()
+        return Course.objects.filter(status='approved', completed=True)
+       
     
 
 

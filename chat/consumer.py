@@ -11,17 +11,16 @@ logger = logging.getLogger(__name__)
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):   
-        logger.info('ooooooooooooooooooooooooooookkkkkkkkkkkkkkkk')
         self.room_id = self.scope['url_route']['kwargs']['room_id']
         self.room_group_name = f'chat_{self.room_id}'
 
            # Add debug logging
-        print(f"Attempting to connect to room {self.room_id}")
-        print(f"User: {self.scope.get('user')}")
+        logger.info(f"Attempting to connect to room {self.room_id}")
+        logger.info(f"User: {self.scope.get('user')}")
 
 
         if not await self.can_access_room():
-            print(f"Access denied to room {self.room_id}")
+            logger.info(f"Access denied to room {self.room_id}")
             await self.close()
             return
         
@@ -29,7 +28,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             self.room_group_name,
             self.channel_name
         )
-        print(f"Successfully connected to room {self.room_id}")
+        logger.info(f"Successfully connected to room {self.room_id}")
         await self.accept()
 
 
@@ -45,16 +44,16 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             room = ChatRoom.objects.get(id=self.room_id)
             user = self.scope['user']
             if user.is_anonymous:
-                print("Anonymous user denied access")
+                logger.info("Anonymous user denied access")
                 return False
             has_access = user == room.tutor or user == room.student
-            print(f"Access check for user {user.id}: {has_access}")
+            logger.info(f"Access check for user {user.id}: {has_access}")
             return has_access
         except ObjectDoesNotExist:
-            print(f"Room {self.room_id} not found") 
+            logger.info(f"Room {self.room_id} not found") 
             return False
         except Exception as e:
-            print(f"Error checking room access: {e}")
+            logger.error(f"Error checking room access: {e}")
             return False
 
 

@@ -33,8 +33,6 @@ class DashboardViewSet(viewsets.ViewSet):
         
         students = PurchasedCourseUser.objects.values('user').distinct().count()
         
-        
-
         response_data = ({
             'total_users':total_users,
             'total_courses':total_courses,

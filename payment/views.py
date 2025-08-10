@@ -23,16 +23,19 @@ from rest_framework.exceptions import NotFound
 from user_auth.permission import IsTutor
 from rest_framework import generics
 from ReportWallet.models import Wallet
+from notifications.models import Notification
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+import logging
+from django.db import transaction
+
 
 # stripe listen --forward-to http://127.0.0.1:8000/payment/webhook/ --log-level debug
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
-import logging
 logging.basicConfig(level=logging.DEBUG)
 
 logger = logging.getLogger(__name__)
-
-
 
 
 
@@ -47,27 +50,17 @@ class PaymentViewSet(viewsets.ModelViewSet):
     def initiate(self, request,pk=None):
 
         try:
-
             course = Course.objects.get(id=pk)
-
-
-
-            # Validation checks
             if PurchasedCourseUser.objects.filter( user=request.user, purchased_course__course=course).exists():
                 return Response(
                     {"error": "Course already purchased"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-
-            # Create payment record
-            print('aaaaaaaaaaa')
-
             payment = Payment.objects.create(
                 user=request.user,
                 course=course,
                 amount_paid=course.fees
             )
-
 
             # Get checkout URL
             checkout_url = payment.create_stripe_session()
@@ -95,13 +88,11 @@ class PaymentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
-# @csrf_exempt
-# @require_POST
+
 def stripe_webhook(request):
-   
+
     payload = request.body
     sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
-
 
     try:
         event = stripe.Webhook.construct_event(
@@ -115,107 +106,95 @@ def stripe_webhook(request):
             session = event['data']['object']
             payment_id = session['metadata']['payment_id']
             
-            # Get the payment   
-            payment = Payment.objects.get(id=payment_id)
-            
-            # Update payment status
-            payment.stripe_payment_intent_id = session['payment_intent']
-            payment.payment_status = 'successful'
-            payment.save()
-
-
-            tutor_share = int(float(payment.amount_paid) * 0.80)
-
-            # Create wallet entry for tutor
-            Wallet.objects.create(
-                user=payment.course.tutor,
-                transaction_type='course_sale',
-                transaction_details=f"Course purchase: {payment.course.title}",
-                amount=tutor_share,
-                balance=Wallet.objects.filter(user=payment.course.tutor).last().balance + tutor_share if Wallet.objects.filter(user=payment.course.tutor).exists() else tutor_share
-            )
-
-
-
-
-
-                       # Check if PurchasedCourse already exists
-            purchased_course, created = PurchasedCourse.objects.get_or_create(
-                course=payment.course,
-                defaults={
-                    'course_title': payment.course.title,
-                    'course_description': payment.course.description,
-                    'course_fees': payment.amount_paid,
-                    'tutor': payment.course.tutor,
-                    'is_active': True
-                }
-            )
-
-            # Create PurchasedCourseUser entry
-            PurchasedCourseUser.objects.get_or_create(
-                purchased_course=purchased_course,
-                user=payment.user
-            )
-
-            # If this is a newly created purchased course, create purchased lessons
-            if created:
-                for lesson in purchased_course.course.tutorials.all():
-                    PurchasedCourseLesson.objects.create(
-                        purchased_course=purchased_course,
-                        title=lesson.title,
-                        description=lesson.description,
-                        cloudinary_url=lesson.cloudinary_url,
-                        thumbnail=lesson.thumbnail,
-                        order=lesson.order
-                    )  
-
-
-            from notifications.models import Notification
-            from channels.layers import get_channel_layer
-            from asgiref.sync import async_to_sync
-            import json
-            
-            # Create notification in the database
-            notification = Notification.objects.create(
-                recipient=payment.course.tutor,
-                notification_type='purchase',
-                title='New Course Purchase',
-                message=f"{payment.user.first_name} {payment.user.last_name} purchased your course '{payment.course.title}'",
-                course=payment.course
-            )
-            
-            # Send real-time notification via WebSocket
-            try:
-                channel_layer = get_channel_layer()
-                notification_data = {
-                    'id': notification.id,
-                    'type': notification.notification_type,
-                    'title': notification.title,
-                    'message': notification.message,
-                    'created_at': notification.created_at.isoformat(),
-                    'course_id': payment.course.id
-                }
+            with transaction.atomic():
+                payment = Payment.objects.get(id=payment_id)
                 
-                async_to_sync(channel_layer.group_send)(
-                    f'notifications_{payment.course.tutor.id}',
-                    {
-                        'type': 'notification_message',
-                        'notification': notification_data
+                # Update payment status
+                payment.stripe_payment_intent_id = session['payment_intent']
+                payment.payment_status = 'successful'
+                payment.save()
+
+                tutor_share = int(float(payment.amount_paid) * 0.80)
+
+                # Create wallet entry for tutor
+                Wallet.objects.create(
+                    user=payment.course.tutor,
+                    transaction_type='course_sale',
+                    transaction_details=f"Course purchase: {payment.course.title}",
+                    amount=tutor_share,
+                    balance=Wallet.objects.filter(user=payment.course.tutor).last().balance + tutor_share if Wallet.objects.filter(user=payment.course.tutor).exists() else tutor_share
+                )
+
+                        # Check if PurchasedCourse already exists
+                purchased_course, created = PurchasedCourse.objects.get_or_create(
+                    course=payment.course,
+                    defaults={
+                        'course_title': payment.course.title,
+                        'course_description': payment.course.description,
+                        'course_fees': payment.amount_paid,
+                        'tutor': payment.course.tutor,
+                        'is_active': True
                     }
                 )
-                print(f"Successfully sent notification to tutor {payment.course.tutor.id}")
-            except Exception as e:
-                print(f"Error sending WebSocket notification: {str(e)}")    
-                
 
-            print(f"Successfully processed payment and course purchase for payment_id: {payment_id}")
+                PurchasedCourseUser.objects.get_or_create(
+                    purchased_course=purchased_course,
+                    user=payment.user
+                )
+
+                if created:
+                    for lesson in purchased_course.course.tutorials.all():
+                        PurchasedCourseLesson.objects.create(
+                            purchased_course=purchased_course,
+                            title=lesson.title,
+                            description=lesson.description,
+                            cloudinary_url=lesson.cloudinary_url,
+                            thumbnail=lesson.thumbnail,
+                            order=lesson.order
+                        )  
+
+
+                # Create notification in the database
+                notification = Notification.objects.create(
+                    recipient=payment.course.tutor,
+                    notification_type='purchase',
+                    title='New Course Purchase',
+                    message=f"{payment.user.first_name} {payment.user.last_name} purchased your course '{payment.course.title}'",
+                    course=payment.course
+                )
+                
+                # Send real-time notification via WebSocket
+                try:
+                    channel_layer = get_channel_layer()
+                    notification_data = {
+                        'id': notification.id,
+                        'type': notification.notification_type,
+                        'title': notification.title,
+                        'message': notification.message,
+                        'created_at': notification.created_at.isoformat(),
+                        'course_id': payment.course.id
+                    }
+                    
+                    async_to_sync(channel_layer.group_send)(
+                        f'notifications_{payment.course.tutor.id}',
+                        {
+                            'type': 'notification_message',
+                            'notification': notification_data
+                        }
+                    )
+                    logger.info(f"Successfully sent notification to tutor {payment.course.tutor.id}")
+                except Exception as e:
+                    logger.error(f"Error sending WebSocket notification: {str(e)}")    
+                    
+
+            logger.info(f"Successfully processed payment and course purchase for payment_id: {payment_id}")
             return HttpResponse(status=200)
         except Payment.DoesNotExist:
-            print(f"Payment not found for session {session['id']}")
+            logger.error(f"Payment not found for session {session['id']}")
             return HttpResponse(status=400)
         
         except Exception as e:
-            print(f"Error processing webhook: {str(e)}")
+            logger.error(f"Error processing webhook: {str(e)}")
             return HttpResponse(status=400)
 
     elif event['type'] == 'payment_intent.payment_failed':
@@ -226,7 +205,7 @@ def stripe_webhook(request):
             payment.last_error = payment_intent.get('last_payment_error', {}).get('message')
             payment.save()
         except Payment.DoesNotExist:
-            print(f"Payment not found for payment_intent {payment_intent['id']}")
+            logger.error(f"Payment not found for payment_intent {payment_intent['id']}")
 
     return HttpResponse(status=200)
 
@@ -234,24 +213,20 @@ def stripe_webhook(request):
 
 class PurchasedCoursesView(APIView):
   
-    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
+    permission_classes = [IsAuthenticated]  
     
     def get(self, request):
-        # Filter purchased courses for the authenticated user
         purchased_courses_users = PurchasedCourseUser.objects.filter(user=request.user)
         logger.info("Test log from view is working.")
 
         purchased_courses = [pcu.purchased_course for pcu in purchased_courses_users]
-        
-        # Serialize the data
         serializer = PurchasedCourseSerializer(purchased_courses, many=True)
-        
         return Response(serializer.data)
  
 
 class PurchasedCourseLessonListView(generics.ListAPIView):
     serializer_class = PurchasedCourseLessonSerializer
-    permission_classes = [IsAuthenticated]  # Only authenticated users can access lessons
+    permission_classes = [IsAuthenticated]  
 
     def get_queryset(self):
         course_id = self.kwargs['course_id']
@@ -263,7 +238,6 @@ class PurchasedCourseLessonListView(generics.ListAPIView):
         
         if not purchased_course_user:
             raise PermissionDenied("You have not purchased this course")
-        
         return PurchasedCourseLesson.objects.filter(purchased_course_id=course_id)
 
 
@@ -272,24 +246,17 @@ class PurchasedCourseLessonListView(generics.ListAPIView):
 
 class TutorPurchasedCourseLessonListView(generics.ListAPIView):
     serializer_class = PurchasedCourseLessonSerializer
-    permission_classes = [IsAuthenticated]  # Only authenticated users can access lessons
+    permission_classes = [IsAuthenticated]  
 
     def get_queryset(self):
         course_id = self.kwargs['course_id']
         user = self.request.user
-
-        # Check if the user is a tutor for the given course
         purchased_course = PurchasedCourse.objects.filter(
             tutor=user,
         )
-
-        print('sssssssssss',purchased_course)
-
-        # If the user is not the tutor for this course, raise permission denied
         if not purchased_course:
             raise PermissionDenied("You are not the tutor for this course")
 
-        # Return the lessons associated with the purchased course
         return PurchasedCourseLesson.objects.filter(purchased_course_id=course_id).order_by('order')
 
 
@@ -331,8 +298,6 @@ class TutorPurchasedCourseLessonDetailView(generics.RetrieveAPIView):
     def get_object(self):
         course_id = self.kwargs['course_id']
         lesson_id = self.kwargs['lesson_id']
-        print(course_id)
-        print(lesson_id)
 
        
         lesson = get_object_or_404(
@@ -376,13 +341,8 @@ class TutorStudentsListView(generics.ListAPIView):
         # Get the tutor ID from the URL parameters
         tutor_id = self.kwargs['tutor_id']
         
-        # Get all PurchasedCourse instances for the tutor
         purchased_courses = PurchasedCourse.objects.filter(tutor__id=tutor_id)
-        
-        # Get all PurchasedCourseUser instances for these courses
-        purchased_course_users = PurchasedCourseUser.objects.filter(purchased_course__in=purchased_courses)
-        
-        # Extract unique students from the PurchasedCourseUser instances
+        purchased_course_users = PurchasedCourseUser.objects.filter(purchased_course__in=purchased_courses)        
         students = set(pcu.user for pcu in purchased_course_users)
         
         return students

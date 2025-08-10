@@ -10,28 +10,25 @@ User = get_user_model()
 class RegisterSerializer(serializers.ModelSerializer):
 
     first_name = serializers.CharField(required=True)
-
     email = serializers.EmailField(
         required=True,
         validators = [UniqueValidator(queryset=User.objects.all())]
     )
-
     phone_number = serializers.CharField(
         required = True,
         validators = [UniqueValidator(queryset=User.objects.all())]
     )
-
     password = serializers.CharField(write_only=True)
-    confirm_password = serializers.CharField(write_only=True)  # Add confirm_password field
+    confirm_password = serializers.CharField(write_only=True)  
     
     role = serializers.ChoiceField(
         choices=User.ROLE_CHOICES,
-        default=User.DEFAULT_ROLE,  # This sets the default to 'student'
-        required=False  # Make this field optional
+        default=User.DEFAULT_ROLE,  
+        required=False  
     )
 
-    experience = serializers.CharField(required=False, allow_blank=True)  # New field
-    bio = serializers.CharField(required=False, allow_blank=True)  # New field
+    experience = serializers.CharField(required=False, allow_blank=True) 
+    bio = serializers.CharField(required=False, allow_blank=True)  
 
 
     class Meta:
@@ -45,7 +42,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         return data
     
     def create(self,validated_data):
-        validated_data.pop('confirm_password')  # Remove confirm_password before creating the user
+        validated_data.pop('confirm_password')  
 
         user = User.objects.create_user(**validated_data)
         return user
@@ -54,8 +51,6 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     
-    #    Custom token serializer to include additional user information in the token.
-
     @classmethod
     def get_token(cls,user):
 #Generates the token
@@ -86,8 +81,6 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('first_name','last_name','email','phone_number','profile','experience','bio') 
-
-
 
     def validate_first_name(self, value):
         if not value.isalpha():
