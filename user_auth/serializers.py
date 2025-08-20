@@ -2,6 +2,8 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from rest_framework.validators import UniqueValidator
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+import re
+
 
 
 User = get_user_model()
@@ -101,14 +103,30 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_phone_number(self, value):
+    # 1. Digits only
         if not value.isdigit():
             raise serializers.ValidationError("Phone number must contain only digits.")
+
+        # 2. Exactly 10 digits
         if len(value) != 10:
-            raise serializers.ValidationError("Phone number must be at least 10 digits.")
+            raise serializers.ValidationError("Phone number must be exactly 10 digits.")
+
+        # 3. Not all zeros
+        if value == "0000000000":
+            raise serializers.ValidationError("Phone number cannot be all zeros.")
+
+        # 4. No more than 5 identical consecutive digits
+        import re
+        if re.search(r'(\d)\1{5,}', value):
+            raise serializers.ValidationError("Phone number cannot contain more than 5 identical digits in a row.")
+
+        # 5. Unique check (exclude current user)
         user = self.context['request'].user
         if User.objects.exclude(pk=user.pk).filter(phone_number=value).exists():
             raise serializers.ValidationError("This phone number is already in use.")
-        return value          
+
+        return value
+         
 
 
 
