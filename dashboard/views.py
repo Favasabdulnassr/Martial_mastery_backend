@@ -15,7 +15,7 @@ from payment.models import PurchasedCourseUser
 class DashboardViewSet(viewsets.ViewSet):
     permission_classes = [IsAdmin]
 
-    @action(detail=False,methods=['get'])
+    @action(detail=False,methods=['get'],url_path='stats')
     def get_stats(self,request):
         total_users = CustomUser.objects.exclude(role='admin').count()
 

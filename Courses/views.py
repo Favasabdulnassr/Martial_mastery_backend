@@ -87,7 +87,7 @@ class UpdateCourseView(APIView):
         if 'tutor' not in data:
             data['tutor'] = request.user.id  
 
-        serializer = CourseUpdateSerializer(course, data=data, partial=True)  # partial=True allows partial updates
+        serializer = CourseUpdateSerializer(course, data=data, partial=True)  #  allows partial updates
 
         if not serializer.is_valid():
             return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -105,11 +105,10 @@ class CourseViewAdmin(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def completed(self, request):
-       
         search_query = request.query_params.get('search', '').strip()
         
         # Start with completed courses
-        completed_courses = Course.objects.completed()
+        completed_courses = Course.objects.filter(completed=True)
         
         # Apply search filter if search_query exists
         if search_query:
@@ -126,9 +125,7 @@ class CourseViewAdmin(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def completed_course(self, request, pk=None):
-        """
-        Custom action to fetch a single completed course by its ID
-        """
+        
         try:
             # Get the course by ID and check if it is completed
             course = Course.objects.get(id=pk, completed=True)
@@ -146,7 +143,6 @@ class CourseStatusUpdateView(APIView):
         try:
             course = Course.objects.get(id=pk)
 
-            # Ensure the status provided is either 'approved' or 'rejected'
             status_to_update = request.data.get("status")
 
             if status_to_update not in ['approved', 'rejected']:
@@ -155,7 +151,6 @@ class CourseStatusUpdateView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # If the status is 'rejected', set 'completed' to False
             if status_to_update == 'rejected':
                 course.completed = False
 
@@ -197,7 +192,7 @@ class LessonViewSet(viewsets.ModelViewSet):
 class LessonUploadView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, CourseId, *args, **kwargs):
+    def post(self, request, courses_id, *args, **kwargs):
         
         try:
             # Configure Cloudinary with credentials
@@ -217,7 +212,7 @@ class LessonUploadView(APIView):
 
             # Get course or return 404
             try:
-                course = Course.objects.get(id=CourseId)
+                course = Course.objects.get(id=courses_id)
             except Course.DoesNotExist:
                 return Response(
                     {"detail": "Course not found."}, 
@@ -269,11 +264,11 @@ class LessonUploadView(APIView):
                     "detail": f"Error creating lesson: {str(e)}"
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            # Return successful response with sanitized data
+            # successful response with sanitized data
             response_data = {
                 'message': 'Lesson uploaded successfully',
                 'lesson_id': lesson.id,
-                'video_url': video_upload['secure_url'],  # Use the model method to get the URL
+                'video_url': video_upload['secure_url'],  #  the model method to get the URL
                 'thumbnail_url': lesson.thumbnail.url if lesson.thumbnail else None
             }
 
@@ -302,7 +297,7 @@ class CourseViewUser(ListAPIView):
 
 
 class CourseLessonView(ListAPIView):
-    permission_classes = [IsAuthenticated]  # Optionally add permissions
+    permission_classes = [IsAuthenticated]  
     serializer_class = CourseLessonSerializer
 
     def get_queryset(self):

@@ -1,6 +1,9 @@
 from django.urls import path
 from .views import DashboardViewSet
+from rest_framework.routers import DefaultRouter
 
-urlpatterns = [
-    path('dashboard/get_stats/',DashboardViewSet.as_view({'get':'get_stats'}),name='get_stats')
-]
+
+router = DefaultRouter()
+router.register(r'dashboard', DashboardViewSet, basename='dashboard')
+
+urlpatterns = router.urls

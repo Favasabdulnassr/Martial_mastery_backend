@@ -236,17 +236,6 @@ class ResendOtpView(APIView):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 class VerifyOtpView(APIView):
     permission_classes = [AllowAny]
 

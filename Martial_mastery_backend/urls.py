@@ -25,9 +25,9 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls')),
     path('auth/',include('user_auth.urls')),
     path('',include('Courses.urls')),
-    path('payment/',include('payment.urls')),
+    path('payments/',include('payment.urls')),
     path('comments/',include('comments.urls')),
-    path('chat/',include('chat.urls')),
+    path('chats/',include('chat.urls')),# kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk
     path('',include('ReportWallet.urls')),
     path('',include('dashboard.urls')),
     path('',include('notifications.urls')),

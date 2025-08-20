@@ -10,33 +10,26 @@ Lessons_create = LessonViewSet.as_view({'get': 'list'})
 Lessons_update = LessonViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})
 
 
-course_admin_completed = CourseViewAdmin.as_view({'get': 'completed'})  # List of completed courses
+course_admin_completed = CourseViewAdmin.as_view({'get': 'completed'})  #
 admin_course_detail = CourseViewAdmin.as_view({'get': 'completed_course'})
 
 urlpatterns = [
-    path('course/',course_create, name='course-list-create'),
-    path('course/<int:pk>/',course_update, name='course-detail'),
-    path('course/<int:pk>/update/', UpdateCourseView.as_view(), name='course-update'),
+    path('courses/',course_create, name='course-list-create'), 
+    path('courses/<int:pk>/',course_update, name='course-detail'), 
+    path('courses/<int:pk>/update/', UpdateCourseView.as_view(), name='course-update'),
 
-    path('course/<int:pk>/mark_as_completed/',course_completed, name='course-mark-as-completed'),
-    path('course/<int:course_pk>/lesson/', Lessons_create, name='lesson-list-create'),
-    path('course/<int:course_pk>/lesson/<int:pk>/', Lessons_update, name='lesson-detail'),
-    path('course/<int:CourseId>/upload_lesson/', LessonUploadView.as_view(), name='upload_video'),
+    path('courses/<int:pk>/completion/',course_completed, name='course-completion'),
+    path('courses/<int:pk>/status/', CourseStatusUpdateView.as_view(), name='course-update-status'),
 
+    path('courses/<int:course_id>/lessons/', Lessons_create, name='lesson-list-create'),
+    path('courses/<int:course_id>/lessons/<int:pk>/', Lessons_update, name='lesson-detail'), 
+    path('courses/<int:courses_id>/lessons/upload/', LessonUploadView.as_view(), name='lesson-upload'),
 
-      # Admin-specific routes
-    path('course/completed/', course_admin_completed, name='admin-course-completed'),  
-    path('course/<int:pk>/completed/',admin_course_detail,name='course_detail_admin'),
+    path('users/completed-courses/', CourseViewUser.as_view(), name='user-completed-courses'),
 
-    path('course/<int:pk>/update_status/', CourseStatusUpdateView.as_view(), name='course-update-status'),
-    path('user/completed-courses/', CourseViewUser.as_view(), name='user-completed-courses'),
-    path('course/<int:course_id>/lessons/', CourseLessonView.as_view(), name='course-lessons'),
-
-
-
-
-
-
+    path('admins/courses/completed/', course_admin_completed, name='admin-course-completed'),  
+    path('admins/courses/<int:pk>/completed/',admin_course_detail,name='course_detail_admin'),   
+    path('courses/<int:course_id>/lessons/', CourseLessonView.as_view(), name='course-lessons'),
     
-   
+
 ]

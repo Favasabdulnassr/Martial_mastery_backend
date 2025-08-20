@@ -7,21 +7,22 @@ from .views import UserListView,TutorRegister,TutorListView,ChangePassword,Googl
 urlpatterns = [
     path('register/',RegisterView.as_view(),name='register'),
     path('resend-otp/',ResendOtpView.as_view(),name='resend-otp'),
-    path('verify/',VerifyOtpView.as_view(),name='verify'),
-    path('profile/update/',ProfileUpdateView.as_view(),name='profile-update'),
-    path('profile/profile_picture/',ProfilePictureView.as_view(),name='profile_picture'),
-    path('tutor/register/',TutorRegister.as_view(),name='tutor_register'),
+    path('verify-otp/',VerifyOtpView.as_view(),name='verify-otp'),
+    path('profile/',ProfileUpdateView.as_view(),name='profile-update'),
+    path('profile/picture/',ProfilePictureView.as_view(),name='profile-picture'),
+    path('tutors/register/',TutorRegister.as_view(),name='tutor-register'),
     path('users/',UserListView.as_view(),name='users'),
     path('tutors/',TutorListView.as_view(),name='tutors'),
-    path('change_password/',ChangePassword.as_view(),name='change_password'),
+    path('tutor/students/',tutor_students, name='tutor-students'),
+
+    path('change-password/',ChangePassword.as_view(),name='change-password'),
     # Jwt Token Urls
 
-    path('token/',MyTokenObtainPairView.as_view(),name='token_obtain_pair'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/',MyTokenObtainPairView.as_view(),name='token-obtain-pair'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
     path('google/login/', GoogleSignInView.as_view(), name='google-login'),
     path('forgot-password/',ForgotPasswordView.as_view(), name='forgot-password'),
     path('reset-password/<str:token>/',ResetPasswordView.as_view(), name='reset-password'),
-    path('tutor/students/',tutor_students, name='tutor-students'),
 
 
 ]

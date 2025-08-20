@@ -3,13 +3,13 @@ from .views import report_course,ReportedCoursesListView,CourseReportDetailsView
 from .views import TutorWalletView,SendReportEmailsView,UnlistCourseView,TutorWithdrawalView
 
 urlpatterns = [
-    path('report/course',report_course,name='report_course'),
-    path('adminside/reported-courses',ReportedCoursesListView.as_view(),name='reported_courses'),
-    path('adminside/course-reports/<int:course_id>/', CourseReportDetailsView.as_view(), name='course-report-details'),
-    path('send-report-emails/', SendReportEmailsView.as_view(), name='send-report-emails'),
-     path('unlist-course/<int:course_id>/', UnlistCourseView.as_view(), name='unlist-course'),
+    path('reports/',report_course,name='reports'),
+    path('admins/reports/',ReportedCoursesListView.as_view(),name='admin-reports'),
+    path('reports/<int:course_id>/', CourseReportDetailsView.as_view(), name='report-detail'),
+    path('reports/notify/', SendReportEmailsView.as_view(), name='report-notify'),
+    path('courses/<int:course_id>/unlist/', UnlistCourseView.as_view(), name='course-unlist'),
 
-    path('tutor-wallet/<int:tutor_id>/', TutorWalletView.as_view(), name='tutor-wallet'),  
-    path('tutor-withdrawal/',TutorWithdrawalView.as_view(),name='withdrawal')
+    path('tutors/<int:tutor_id>/wallet/', TutorWalletView.as_view(), name='tutor-wallet'),  
+    path('tutors/withdrawals/',TutorWithdrawalView.as_view(),name='tutor-withdrawals')
 
 ]

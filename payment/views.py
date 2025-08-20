@@ -30,7 +30,7 @@ import logging
 from django.db import transaction
 
 
-# stripe listen --forward-to http://127.0.0.1:8000/payment/webhook/ --log-level debug
+# stripe listen --forward-to http://127.0.0.1:8000/payments/webhook/ --log-level debug
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 logging.basicConfig(level=logging.DEBUG)
