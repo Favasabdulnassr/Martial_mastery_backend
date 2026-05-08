@@ -37,7 +37,9 @@ EMAIL_PORT = os.getenv("MY_EMAIL_PORT")
 EMAIL_HOST_USER = os.getenv("MY_EMAIL")
 EMAIL_HOST_PASSWORD = os.getenv("MY_EMAIL_HOST_PASSWORD")
 
-ALLOWED_HOSTS = []
+# Read ALLOWED_HOSTS from env, defaulting to allowing all if not set
+allowed_hosts_env = os.getenv("ALLOWED_HOSTS", "*")
+ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(",")]
 
 
 
@@ -107,9 +109,9 @@ CLOUDINARY_STORAGE = {
 
 
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:5173'
-    
-    ]
+    'http://localhost:5173',
+    os.getenv("SITE_URL", "http://localhost:5173")
+]
 
 
 CORS_ALLOW_ALL_ORIGINS = True
@@ -160,14 +162,13 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "martial_mastery",
-        "USER": "postgres",
-        "PASSWORD": "3636",
-        "HOST": "127.0.0.1",
-        "PORT": "5433",
+        "NAME": os.getenv("DB_NAME"),
+        "USER": os.getenv("DB_USER"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
+        "HOST": os.getenv("DB_HOST"),
+        "PORT": os.getenv("DB_PORT"),
     }
 }
-
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
@@ -255,7 +256,7 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 
 
 
-SITE_URL = 'http://localhost:5173'
+SITE_URL = os.getenv("SITE_URL", "http://localhost:5173")
 
 
 # File storage for temporary files

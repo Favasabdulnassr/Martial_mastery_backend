@@ -1,0 +1,59 @@
+name: Deploy Backend to EC2
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: GITHUB_TOKEN,REPO
+          script: |
+            # Check if the folder already exists
+            if [ -d "martial_backend" ]; then
+              cd martial_backend
+              # Pull the latest code securely using GitHub's temporary action token
+              git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO}.git
+              git pull origin main
+            else
+              # First time deployment: Clone the code securely
+              git clone https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO}.git martial_backend
+              cd martial_backend
+            fi
+            
+            # Write the .env file from GitHub Secrets
+            cat > .env <<EOF
+            MY_SECRET_KEY=${{ secrets.MY_SECRET_KEY }}
+            MY_EMAIL_PORT=${{ secrets.MY_EMAIL_PORT }}
+            MY_EMAIL=${{ secrets.MY_EMAIL }}
+            MY_EMAIL_HOST_PASSWORD=${{ secrets.MY_EMAIL_HOST_PASSWORD }}
+            CLOUD_NAME=${{ secrets.CLOUD_NAME }}
+            API_KEY=${{ secrets.API_KEY }}
+            API_SECRET=${{ secrets.API_SECRET }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            DB_NAME=${{ secrets.DB_NAME }}
+            DB_USER=${{ secrets.DB_USER }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_HOST=db
+            DB_PORT=5432
+            ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
+            SITE_URL=${{ secrets.SITE_URL }}
+            STRIPE_PUBLIC_KEY=${{ secrets.STRIPE_PUBLIC_KEY }}
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+            STRIPE_ENDPOINT_SECRET=${{ secrets.STRIPE_ENDPOINT_SECRET }}
+            EOF
+            
+            # Restart the backend containers
+            sudo docker compose down
+            sudo docker compose up -d --build

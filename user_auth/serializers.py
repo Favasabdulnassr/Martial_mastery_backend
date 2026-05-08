@@ -41,6 +41,8 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate(self,data):
         if data['password'] != data['confirm_password']:
             raise serializers.ValidationError('Password do not match')
+        if data.get('role') == 'admin':
+            raise serializers.ValidationError({'role': 'Cannot register as admin'})
         return data
     
     def create(self,validated_data):
