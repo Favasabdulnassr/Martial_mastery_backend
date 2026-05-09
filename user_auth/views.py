@@ -42,7 +42,7 @@ class GoogleSignInView(APIView):
                 'code': code,
                 'client_id': settings.GOOGLE_CLIENT_ID,
                 'client_secret': settings.GOOGLE_CLIENT_SECRET,
-                'redirect_uri':"http://localhost:5173",  
+                'redirect_uri': 'postmessage',  
                 'grant_type': 'authorization_code'
             }
             
