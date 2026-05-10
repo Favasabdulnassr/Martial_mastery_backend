@@ -41,6 +41,9 @@ EMAIL_HOST_PASSWORD = os.getenv("MY_EMAIL_HOST_PASSWORD")
 allowed_hosts_env = os.getenv("ALLOWED_HOSTS", "*")
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(",")]
 
+# Tell Django it's behind a secure HTTPS Nginx proxy
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 
 
 # Application definition
