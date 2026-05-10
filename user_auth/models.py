@@ -1,5 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser,BaseUserManager,PermissionsMixin
+#  sudo docker compose exec backend python manage.py createsuperuser             production inside martial_backend
+
+
+# locally
+# docker compose up -d     
+# docker compose exec backend python manage.py createsuperuser
 
 
 

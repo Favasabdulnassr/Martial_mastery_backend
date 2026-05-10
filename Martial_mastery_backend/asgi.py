@@ -29,17 +29,12 @@ from channels.security.websocket import OriginValidator
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
-    "websocket": OriginValidator(
+    "websocket": AllowedHostsOriginValidator(
         AuthMiddlewareStack(
             TokenAuthMiddleware(
                 URLRouter(combined_websocket_urlpatterns)
             )
-        ),
-        [
-            "http://localhost:3000",
-            'http://localhost:5173'
-            
-        ]
+        )
     ),
 })
 
