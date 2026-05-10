@@ -29,12 +29,17 @@ from channels.security.websocket import OriginValidator
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
-    "websocket": AllowedHostsOriginValidator(
+    "websocket": OriginValidator(
         AuthMiddlewareStack(
             TokenAuthMiddleware(
                 URLRouter(combined_websocket_urlpatterns)
             )
-        )
+        ),
+        [
+            "http://localhost:5173",
+            "https://martialmastery.online",
+            "https://www.martialmastery.online",
+        ]
     ),
 })
 
